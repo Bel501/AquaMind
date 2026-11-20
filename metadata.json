@@ -1,0 +1,6 @@
+{
+  "name": "AquaMind",
+  "description": "Plateforme intelligente de gestion de l'eau par IA prédictive et capteurs IoT — L'eau, enfin sous contrôle.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
