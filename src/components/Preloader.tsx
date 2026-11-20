@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import gsap from 'gsap';
+import { useTranslation } from 'react-i18next';
 
 interface PreloaderProps {
   onComplete: () => void;
 }
 
 export function Preloader({ onComplete }: PreloaderProps) {
+  const { t } = useTranslation();
   const [progress, setProgress] = useState(0);
   const [hidden, setHidden] = useState(false);
 
@@ -21,7 +23,7 @@ export function Preloader({ onComplete }: PreloaderProps) {
     const state = { val: 0 };
     const tween = gsap.to(state, {
       val: 100,
-      duration: 1.25,
+      duration: 1.15,
       ease: 'power2.inOut',
       onUpdate: () => {
         setProgress(Math.round(state.val));
@@ -37,14 +39,13 @@ export function Preloader({ onComplete }: PreloaderProps) {
     };
   }, [onComplete]);
 
-  // Y offset goes from 120 (empty) to -4 (full)
   const liquidY = 120 - (progress / 100) * 124;
 
   return (
     <div
       role="status"
       aria-live="polite"
-      aria-label="Chargement de la plateforme AquaMind"
+      aria-label={t('preloaderLabel')}
       className={`fixed inset-0 z-[9000] flex flex-col items-center justify-center gap-5 bg-[#05121F] transition-all duration-700 ease-out ${
         hidden ? 'opacity-0 invisible pointer-events-none' : 'opacity-100 visible'
       }`}
@@ -92,9 +93,7 @@ export function Preloader({ onComplete }: PreloaderProps) {
       <div className="font-mono-tabular text-2xl font-semibold tracking-wider text-[#22D3EE]">
         {progress} %
       </div>
-      <div className="text-xs tracking-[0.18em] text-slate-400">
-        Initialisation AquaMind
-      </div>
+      <div className="text-xs tracking-[0.18em] text-slate-400">{t('preloaderLabel')}</div>
     </div>
   );
 }

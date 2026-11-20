@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface Testimonial {
   quote: string;
@@ -33,6 +34,7 @@ const TESTIMONIALS: Testimonial[] = [
 ];
 
 export function TestimonialsSlider() {
+  const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const touchStartX = useRef(0);
 
@@ -66,17 +68,17 @@ export function TestimonialsSlider() {
               key={item.author}
               className="flex-[0_0_100%] p-7 sm:p-12 flex flex-col justify-between gap-7"
             >
-              <blockquote className="font-display text-xl sm:text-2xl lg:text-[1.85rem] font-medium leading-snug text-slate-100 max-w-[44ch]">
+              <blockquote className="font-display text-xl sm:text-2xl lg:text-[1.85rem] font-medium leading-snug text-slate-900 dark:text-slate-100 max-w-[44ch]">
                 « {item.quote} »
               </blockquote>
-              <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-white/8">
+              <div className="flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-slate-200 dark:border-white/8">
                 <div>
-                  <div className="font-display font-semibold text-base text-slate-100">
+                  <div className="font-display font-semibold text-base text-slate-900 dark:text-slate-100">
                     {item.author}
                   </div>
-                  <div className="text-sm text-slate-400">{item.role}</div>
+                  <div className="text-sm text-slate-600 dark:text-slate-400">{item.role}</div>
                 </div>
-                <div className="text-xs sm:text-sm text-[#2DD4BF] font-medium">
+                <div className="text-xs sm:text-sm text-teal-700 dark:text-[#2DD4BF] font-medium">
                   {item.context}
                 </div>
               </div>
@@ -93,10 +95,12 @@ export function TestimonialsSlider() {
               type="button"
               role="tab"
               aria-selected={i === index}
-              aria-label={`Témoignage ${i + 1} : ${item.author}`}
+              aria-label={`${item.author}`}
               onClick={() => setIndex(i)}
               className={`h-1.5 rounded-full transition-all duration-300 cursor-pointer ${
-                i === index ? 'w-12 bg-[#22D3EE]' : 'w-7 bg-white/18 hover:bg-white/35'
+                i === index
+                  ? 'w-12 bg-cyan-600 dark:bg-[#22D3EE]'
+                  : 'w-7 bg-slate-300 dark:bg-white/18 hover:bg-slate-400 dark:hover:bg-white/35'
               }`}
             />
           ))}
@@ -106,16 +110,16 @@ export function TestimonialsSlider() {
           <button
             type="button"
             onClick={prev}
-            aria-label="Témoignage précédent"
-            className="w-11 h-11 rounded-full glass-panel flex items-center justify-center text-slate-200 hover:text-[#22D3EE] cursor-pointer"
+            aria-label={t('testimonials.prev')}
+            className="w-11 h-11 rounded-full glass-panel flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-cyan-600 dark:hover:text-[#22D3EE] cursor-pointer"
           >
             <ChevronLeft size={20} aria-hidden="true" />
           </button>
           <button
             type="button"
             onClick={next}
-            aria-label="Témoignage suivant"
-            className="w-11 h-11 rounded-full glass-panel flex items-center justify-center text-slate-200 hover:text-[#22D3EE] cursor-pointer"
+            aria-label={t('testimonials.next')}
+            className="w-11 h-11 rounded-full glass-panel flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-cyan-600 dark:hover:text-[#22D3EE] cursor-pointer"
           >
             <ChevronRight size={20} aria-hidden="true" />
           </button>

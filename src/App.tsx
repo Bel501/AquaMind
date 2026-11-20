@@ -3,6 +3,8 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
 import { ArrowRight, Check } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { SupportedLocale } from './i18n';
 import { Preloader } from './components/Preloader';
 import { WaterCursor } from './components/WaterCursor';
 import { Navbar } from './components/Navbar';
@@ -11,45 +13,22 @@ import { MagneticButton } from './components/MagneticButton';
 import { TiltFeatureCards } from './components/TiltFeatureCards';
 import { DashboardDemo, type DashMode } from './components/DashboardDemo';
 import { SectorCards } from './components/SectorCards';
+import { AquaMindAssistant } from './components/AquaMindAssistant';
 import { TestimonialsSlider } from './components/TestimonialsSlider';
 import { DemoForm } from './components/DemoForm';
 
 gsap.registerPlugin(ScrollTrigger);
 
-const HERO_HEADLINE = "L'eau, enfin sous contrôle.";
-
-const HOW_STEPS = [
-  {
-    index: '01',
-    kicker: 'Acquisition continue',
-    title: 'Capteurs et météo hyperlocale',
-    description:
-      "Nos sondes LoRaWAN mesurent humidité racinaire, pression, débit et salinité en continu, enrichies par les prévisions satellites et d'évapotranspiration.",
-    meta: 'Sondes IoT · Débitmètres · Météo J+10',
-  },
-  {
-    index: '02',
-    kicker: 'Intelligence temporelle',
-    title: 'Modèles ML et séries temporelles',
-    description:
-      'Nos réseaux neuronaux temporels modélisent la signature hydrique de chaque parcelle ou bâtiment pour prédire les besoins et isoler la moindre anomalie.',
-    meta: 'Séries temporelles · Détection d’écarts · Score de risque',
-  },
-  {
-    index: '03',
-    kicker: 'Exécution précise',
-    title: 'Décisions automatisées',
-    description:
-      "AquaMind ajuste vos électrovannes à la minute près et déclenche une alerte géolocalisée avec coupure ciblée dès qu'une fuite apparaît.",
-    meta: 'Pilotage vannes · Alertes < 4 min · API & SCADA',
-  },
-];
-
 export default function App() {
+  const { t, i18n } = useTranslation();
+
   const [preloaded, setPreloaded] = useState(false);
   const [threeEnabled, setThreeEnabled] = useState(false);
   const [navHidden, setNavHidden] = useState(false);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [locale, setLocale] = useState<SupportedLocale>('fr');
   const [dashMode, setDashMode] = useState<DashMode>('agri');
+  const [leakSimulated, setLeakSimulated] = useState(false);
   const [howStepIndex, setHowStepIndex] = useState('01');
 
   const mainRef = useRef<HTMLElement>(null);
@@ -71,8 +50,51 @@ export default function App() {
     camZ: 7.2,
   });
 
-  // Split headline into words and letters for staggered reveal
-  const heroWords = useMemo(() => HERO_HEADLINE.split(' '), []);
+  const heroTitle = t('hero.title');
+  const heroWords = useMemo(() => heroTitle.split(' '), [heroTitle]);
+
+  const howSteps = t('how.steps', { returnObjects: true }) as Array<{
+    index: string;
+    kicker: string;
+    title: string;
+    description: string;
+    meta: string;
+  }>;
+
+  const resultsItems = t('results.items', { returnObjects: true }) as Array<{
+    prefix: string;
+    target: number;
+    suffix: string;
+    desc: string;
+  }>;
+
+  const contactPerks = t('contact.perks', { returnObjects: true }) as string[];
+
+  // Sync theme class on <html>
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  }, [theme]);
+
+  // Sync language & RTL direction on <html>
+  const handleChangeLocale = useCallback(
+    (next: SupportedLocale) => {
+      setLocale(next);
+      void i18n.changeLanguage(next);
+      document.documentElement.lang = next;
+      document.documentElement.dir = next === 'ar' ? 'rtl' : 'ltr';
+      ScrollTrigger.refresh();
+    },
+    [i18n]
+  );
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
 
   const handlePreloaderComplete = useCallback(() => {
     setPreloaded(true);
@@ -102,7 +124,7 @@ export default function App() {
     [scrollToTarget]
   );
 
-  // Smooth scrolling (Lenis) + scroll progress + navbar hide/show
+  // Smooth scrolling (Lenis) + scroll progress + navbar auto-hide
   useEffect(() => {
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const isMobile =
@@ -168,18 +190,18 @@ export default function App() {
       const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
       tl.fromTo(
         chars,
-        { y: 42, opacity: 0, rotateX: -32 },
-        { y: 0, opacity: 1, rotateX: 0, duration: 0.7, stagger: 0.024 }
+        { y: 40, opacity: 0, rotateX: -30 },
+        { y: 0, opacity: 1, rotateX: 0, duration: 0.65, stagger: locale === 'ar' ? 0.08 : 0.022 }
       ).fromTo(
         fades,
         { y: 24, opacity: 0 },
         { y: 0, opacity: 1, duration: 0.65, stagger: 0.1 },
-        '-=0.36'
+        '-=0.34'
       );
     });
 
     return () => ctx.revert();
-  }, [preloaded]);
+  }, [preloaded, locale]);
 
   // GSAP ScrollTrigger animations (Counters, Reveals, Horizontal Pin, 3D Scene Scrub)
   useEffect(() => {
@@ -195,7 +217,6 @@ export default function App() {
     }
 
     const ctx = gsap.context(() => {
-      // 1. Line-by-line reveal in Problem section
       gsap.from('.reveal-line', {
         yPercent: 110,
         opacity: 0,
@@ -209,7 +230,6 @@ export default function App() {
         },
       });
 
-      // 2. Staggered reveal on grid groups
       gsap.utils.toArray<HTMLElement>('.stagger-group').forEach((group) => {
         const items = group.querySelectorAll('.stagger-item');
         gsap.from(items, {
@@ -226,7 +246,6 @@ export default function App() {
         });
       });
 
-      // 3. Animated counters
       gsap.utils.toArray<HTMLElement>('.counter').forEach((el) => {
         const target = parseFloat(el.dataset.target || '0');
         const prefix = el.dataset.prefix || '';
@@ -248,18 +267,19 @@ export default function App() {
         });
       });
 
-      // 4. Horizontal pinned 3-step showcase (Desktop only)
+      // Horizontal pinned 3-step showcase (Desktop LTR)
       const mm = gsap.matchMedia();
       mm.add('(min-width: 901px)', () => {
         const track = howTrackRef.current;
         const fill = howFillRef.current;
         if (!track || !track.parentElement) return;
 
+        const dirMultiplier = document.documentElement.dir === 'rtl' ? 1 : -1;
         const getScrollDist = () =>
           Math.max(track.scrollWidth - track.parentElement!.offsetWidth, 380);
 
         gsap.to(track, {
-          x: () => -getScrollDist(),
+          x: () => dirMultiplier * getScrollDist(),
           ease: 'none',
           scrollTrigger: {
             trigger: '#how-it-works',
@@ -279,7 +299,7 @@ export default function App() {
         });
       });
 
-      // 5. Persistent 3D Scene choreography scrubbed smoothly across the entire page
+      // Persistent 3D Scene choreography scrubbed smoothly across the page
       const targets = sceneTargetsRef.current;
       const masterTl = gsap.timeline({
         scrollTrigger: {
@@ -291,7 +311,6 @@ export default function App() {
       });
 
       masterTl
-        // Hero -> Données IoT
         .to(targets, {
           hero: 0,
           data: 1,
@@ -300,7 +319,6 @@ export default function App() {
           duration: 1.5,
           ease: 'power1.inOut',
         })
-        // Données IoT -> Prédiction Terrain + Courbes ML
         .to(targets, {
           data: 0,
           prediction: 1,
@@ -310,7 +328,6 @@ export default function App() {
           duration: 1.8,
           ease: 'power1.inOut',
         })
-        // Prédiction -> Détection de fuites (Canalisations)
         .to(targets, {
           prediction: 0,
           leaks: 1,
@@ -320,7 +337,6 @@ export default function App() {
           duration: 1.8,
           ease: 'power1.inOut',
         })
-        // Détection -> Sphère équilibrée (caméra recule)
         .to(targets, {
           leaks: 0,
           optimal: 1,
@@ -330,7 +346,6 @@ export default function App() {
           duration: 1.8,
           ease: 'power1.inOut',
         })
-        // Sphère équilibrée + Vagues 3D en CTA final
         .to(targets, {
           optimal: 0.68,
           waves: 1,
@@ -342,73 +357,92 @@ export default function App() {
     }, main);
 
     return () => ctx.revert();
-  }, []);
+  }, [locale]);
 
   return (
-    <div className="relative min-h-screen bg-[#05121F] text-slate-100">
+    <div className="relative min-h-screen bg-[#f2f8fc] dark:bg-[#05121F] text-slate-900 dark:text-slate-100 transition-colors duration-300">
       <a
         href="#main-content"
         className="skip-link bg-[#22D3EE] text-[#05121F] font-display font-semibold px-5 py-3 rounded-full"
       >
-        Aller au contenu principal
+        {t('skipLink')}
       </a>
 
-      {/* Écran de chargement goutte 0 -> 100 % */}
       <Preloader onComplete={handlePreloaderComplete} />
 
-      {/* Barre de progression du scroll */}
-      <div className="fixed top-0 left-0 w-full h-[3px] z-[1200] bg-white/5 pointer-events-none" aria-hidden="true">
+      {/* Scroll Progress Bar */}
+      <div
+        className="fixed top-0 left-0 w-full h-[3px] z-[1200] bg-slate-900/5 dark:bg-white/5 pointer-events-none"
+        aria-hidden="true"
+      >
         <div
           ref={progressRef}
           className="w-full h-full origin-left scale-x-0 bg-gradient-to-r from-[#22D3EE] via-[#2DD4BF] to-[#A3E635] shadow-[0_0_12px_rgba(34,211,238,0.65)]"
         />
       </div>
 
-      {/* Curseur cercle d'eau (desktop pointer uniquement) */}
       <WaterCursor />
 
-      {/* Scène 3D persistante en arrière-plan fixe (lazy) */}
-      <WaterCanvas3D enabled={threeEnabled} targetsRef={sceneTargetsRef} />
+      <WaterCanvas3D
+        enabled={threeEnabled}
+        theme={theme}
+        leakSimulated={leakSimulated}
+        targetsRef={sceneTargetsRef}
+      />
       <div className="ambient-vignette fixed inset-0 z-[1] pointer-events-none" aria-hidden="true" />
-      <div className="film-grain fixed inset-0 z-[1] pointer-events-none opacity-[0.04]" aria-hidden="true" />
+      <div className="film-grain fixed inset-0 z-[1] pointer-events-none opacity-[0.035]" aria-hidden="true" />
 
-      {/* Navbar flottante */}
-      <Navbar hidden={navHidden} onNavigate={scrollToTarget} />
+      <Navbar
+        hidden={navHidden}
+        theme={theme}
+        locale={locale}
+        onToggleTheme={handleToggleTheme}
+        onChangeLocale={handleChangeLocale}
+        onNavigate={scrollToTarget}
+      />
 
       <main id="main-content" ref={mainRef} className="relative z-[2]">
-        {/* ====================================================================
-            1. HERO — Goutte 3D translucide + particules
-            ==================================================================== */}
+        {/* 1. HERO */}
         <section
           id="hero"
           className="min-h-[100svh] w-[min(calc(100%-36px),1240px)] mx-auto flex flex-col justify-center pt-28 pb-16 relative"
         >
           <div className="max-w-[820px]">
-            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-[#22D3EE] mb-5">
-              Intelligence hydrique · IoT &amp; séries temporelles
+            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-cyan-700 dark:text-[#22D3EE] mb-5">
+              {t('hero.kicker')}
             </p>
 
             <h1
-              aria-label={HERO_HEADLINE}
-              className="font-display text-[clamp(2.85rem,7.2vw,6rem)] font-bold leading-[1.03] tracking-tight mb-7 drop-shadow-[0_12px_42px_rgba(5,18,31,0.85)]"
+              aria-label={heroTitle}
+              className="font-display text-[clamp(2.75rem,7vw,5.8rem)] font-bold leading-[1.04] tracking-tight mb-7"
             >
-              {heroWords.map((word, wIdx) => (
-                <span key={`${word}-${wIdx}`} className="inline-block whitespace-nowrap mr-[0.26em]">
-                  {word.split('').map((ch, cIdx) => (
+              {locale === 'ar'
+                ? heroWords.map((word, wIdx) => (
                     <span
-                      key={`${wIdx}-${cIdx}`}
+                      key={`${word}-${wIdx}`}
                       aria-hidden="true"
-                      className="hero-char inline-block will-change-transform"
+                      className="hero-char inline-block me-[0.26em] will-change-transform"
                     >
-                      {ch}
+                      {word}
+                    </span>
+                  ))
+                : heroWords.map((word, wIdx) => (
+                    <span key={`${word}-${wIdx}`} className="inline-block whitespace-nowrap me-[0.26em]">
+                      {word.split('').map((ch, cIdx) => (
+                        <span
+                          key={`${wIdx}-${cIdx}`}
+                          aria-hidden="true"
+                          className="hero-char inline-block will-change-transform"
+                        >
+                          {ch}
+                        </span>
+                      ))}
                     </span>
                   ))}
-                </span>
-              ))}
             </h1>
 
-            <p className="hero-fade text-lg sm:text-xl text-slate-300 max-w-[54ch] mb-10 leading-relaxed">
-              IA prédictive et capteurs IoT pour irriguer juste et traquer chaque fuite.
+            <p className="hero-fade text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-[54ch] mb-10 leading-relaxed">
+              {t('hero.subtitle')}
             </p>
 
             <div className="hero-fade flex flex-wrap items-center gap-4">
@@ -420,7 +454,7 @@ export default function App() {
                   scrollToTarget('#contact');
                 }}
               >
-                Demander une démo
+                {t('hero.ctaPrimary')}
                 <ArrowRight size={18} aria-hidden="true" />
               </MagneticButton>
 
@@ -432,7 +466,7 @@ export default function App() {
                   scrollToTarget('#how-it-works');
                 }}
               >
-                Voir comment ça marche
+                {t('hero.ctaSecondary')}
               </MagneticButton>
             </div>
           </div>
@@ -443,98 +477,93 @@ export default function App() {
               e.preventDefault();
               scrollToTarget('#problem');
             }}
-            aria-label="Défiler vers la section suivante"
-            className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2.5 text-slate-400 hover:text-[#22D3EE] transition-colors text-[0.72rem] tracking-[0.18em]"
+            aria-label={t('hero.explore')}
+            className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2.5 text-slate-500 dark:text-slate-400 hover:text-cyan-700 dark:hover:text-[#22D3EE] transition-colors text-[0.72rem] tracking-[0.18em]"
           >
-            <span>EXPLORER</span>
+            <span>{t('hero.explore')}</span>
             <span
-              className="w-6 h-10 rounded-full border border-[#22D3EE]/45 bg-[#05121F]/50 flex justify-center pt-1.5"
+              className="w-6 h-10 rounded-full border border-cyan-600/45 dark:border-[#22D3EE]/45 bg-white/60 dark:bg-[#05121F]/50 flex justify-center pt-1.5"
               aria-hidden="true"
             >
-              <span className="scroll-drop-anim w-1.5 h-2.5 rounded-full bg-[#22D3EE] shadow-[0_0_10px_#22D3EE]" />
+              <span className="scroll-drop-anim w-1.5 h-2.5 rounded-full bg-cyan-600 dark:bg-[#22D3EE]" />
             </span>
           </a>
         </section>
 
-        {/* ====================================================================
-            2. LE PROBLÈME — Réseau de capteurs IoT 3D
-            ==================================================================== */}
-        <section
-          id="problem"
-          className="w-[min(calc(100%-36px),1240px)] mx-auto py-24 sm:py-36"
-        >
-          <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-[#22D3EE] mb-5">
-            Le constat
+        {/* 2. LE PROBLÈME */}
+        <section id="problem" className="w-[min(calc(100%-36px),1240px)] mx-auto py-24 sm:py-36">
+          <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-cyan-700 dark:text-[#22D3EE] mb-5">
+            {t('problem.kicker')}
           </p>
 
           <h2 className="font-display text-[clamp(1.75rem,3.6vw,3.1rem)] font-semibold leading-[1.2] max-w-[920px] mb-16">
             <span className="block overflow-hidden">
-              <span className="reveal-line block">Chaque mètre cube gaspillé pèse</span>
+              <span className="reveal-line block">{t('problem.line1')}</span>
             </span>
             <span className="block overflow-hidden">
               <span className="reveal-line block">
-                sur vos rendements et{' '}
-                <span className="text-gradient-aqua">vos marges opérationnelles.</span>
+                {t('problem.line2Prefix')}{' '}
+                <span className="text-gradient-aqua">{t('problem.line2Highlight')}</span>
               </span>
             </span>
           </h2>
 
           <div className="stagger-group grid grid-cols-1 md:grid-cols-3 gap-6">
             <article className="stagger-item glass-panel rounded-3xl p-8 sm:p-9 flex flex-col gap-3">
-              <div className="font-mono-tabular text-5xl sm:text-6xl font-bold text-[#22D3EE] leading-none">
+              <div className="font-mono-tabular text-5xl sm:text-6xl font-bold text-cyan-700 dark:text-[#22D3EE] leading-none">
                 <span className="counter" data-target="30" data-suffix=" %">
                   0 %
                 </span>
               </div>
-              <p className="text-slate-300 text-[0.98rem] leading-relaxed max-w-[28ch]">
-                d&apos;eau perdue en moyenne par sur-irrigation ou réseaux non monitorés.
+              <p className="text-slate-600 dark:text-slate-300 text-[0.98rem] leading-relaxed max-w-[28ch]">
+                {t('problem.stat1')}
               </p>
             </article>
 
             <article className="stagger-item glass-panel rounded-3xl p-8 sm:p-9 flex flex-col gap-3">
-              <div className="font-mono-tabular text-5xl sm:text-6xl font-bold text-[#FB7185] leading-none">
+              <div className="font-mono-tabular text-5xl sm:text-6xl font-bold text-orange-600 dark:text-[#F97316] leading-none">
                 <span className="counter" data-target="42" data-suffix=" j">
                   0 j
                 </span>
               </div>
-              <p className="text-slate-300 text-[0.98rem] leading-relaxed max-w-[28ch]">
-                délai moyen avant de repérer une fuite souterraine sans télémétrie IA.
+              <p className="text-slate-600 dark:text-slate-300 text-[0.98rem] leading-relaxed max-w-[28ch]">
+                {t('problem.stat2')}
               </p>
             </article>
 
             <article className="stagger-item glass-panel rounded-3xl p-8 sm:p-9 flex flex-col gap-3">
-              <div className="font-mono-tabular text-5xl sm:text-6xl font-bold text-[#2DD4BF] leading-none">
+              <div className="font-mono-tabular text-5xl sm:text-6xl font-bold text-teal-700 dark:text-[#2DD4BF] leading-none">
                 <span className="counter" data-target="28" data-prefix="+" data-suffix=" %">
                   +0 %
                 </span>
               </div>
-              <p className="text-slate-300 text-[0.98rem] leading-relaxed max-w-[28ch]">
-                de surcoût énergétique et hydrique évitable sur une saison complète.
+              <p className="text-slate-600 dark:text-slate-300 text-[0.98rem] leading-relaxed max-w-[28ch]">
+                {t('problem.stat3')}
               </p>
             </article>
           </div>
         </section>
 
-        {/* ====================================================================
-            3. COMMENT ÇA MARCHE — 3 étapes horizontales épinglées au scroll
-            Scène 3D : Terrain agricole low-poly + courbes ML
-            ==================================================================== */}
+        {/* 3. COMMENT ÇA MARCHE (Pin Horizontal) */}
         <section id="how-it-works" className="relative overflow-hidden">
           <div className="w-[min(calc(100%-36px),1240px)] mx-auto min-h-screen flex flex-col justify-center py-20 lg:py-24">
             <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-6 mb-10">
               <div>
-                <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-[#A3E635] mb-4">
-                  Architecture en 3 temps
+                <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-lime-700 dark:text-[#A3E635] mb-4">
+                  {t('how.kicker')}
                 </p>
                 <h2 className="font-display text-[clamp(2.1rem,4.4vw,3.6rem)] font-bold leading-[1.08]">
-                  De la donnée brute à{' '}
-                  <span className="text-gradient-agri">l&apos;action autonome.</span>
+                  {t('how.titlePrefix')}{' '}
+                  <span className="text-gradient-agri">{t('how.titleHighlight')}</span>
                 </h2>
               </div>
 
-              <div className="hidden lg:flex items-center gap-3.5 text-sm text-slate-300" aria-hidden="true">
+              <div
+                className="hidden lg:flex items-center gap-3.5 text-sm text-slate-600 dark:text-slate-300"
+                aria-hidden="true"
+              >
                 <span className="font-mono-tabular font-semibold">{howStepIndex} / 03</span>
-                <div className="w-36 h-1 rounded-full bg-white/10 overflow-hidden">
+                <div className="w-36 h-1 rounded-full bg-slate-300 dark:bg-white/10 overflow-hidden">
                   <div
                     ref={howFillRef}
                     className="w-full h-full origin-left scale-x-[0.05] bg-gradient-to-r from-[#22D3EE] to-[#A3E635]"
@@ -548,23 +577,23 @@ export default function App() {
                 ref={howTrackRef}
                 className="flex flex-col lg:flex-row gap-7 will-change-transform"
               >
-                {HOW_STEPS.map((step) => (
+                {howSteps.map((step) => (
                   <article
                     key={step.index}
                     className="glass-panel rounded-3xl p-8 sm:p-10 lg:flex-[0_0_min(76vw,540px)] min-h-[300px] lg:min-h-[350px] flex flex-col justify-between"
                   >
                     <div>
-                      <div className="font-mono-tabular text-xs font-semibold tracking-[0.14em] text-[#22D3EE] mb-4">
+                      <div className="font-mono-tabular text-xs font-semibold tracking-[0.14em] text-cyan-700 dark:text-[#22D3EE] mb-4">
                         {step.index}. {step.kicker}
                       </div>
-                      <h3 className="text-2xl sm:text-3xl font-bold text-slate-100 mb-4">
+                      <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-100 mb-4">
                         {step.title}
                       </h3>
-                      <p className="text-slate-300 text-[1.02rem] leading-relaxed max-w-[42ch]">
+                      <p className="text-slate-600 dark:text-slate-300 text-[1.02rem] leading-relaxed max-w-[42ch]">
                         {step.description}
                       </p>
                     </div>
-                    <div className="pt-6 mt-6 border-t border-white/8 text-xs sm:text-sm text-slate-400">
+                    <div className="pt-6 mt-6 border-t border-slate-200 dark:border-white/8 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                       {step.meta}
                     </div>
                   </article>
@@ -574,181 +603,169 @@ export default function App() {
           </div>
         </section>
 
-        {/* ====================================================================
-            4. FONCTIONNALITÉS — Cartes en verre avec Tilt 3D
-            Scène 3D : Réseau de canalisations + fuite pulsante
-            ==================================================================== */}
-        <section
-          id="features"
-          className="w-[min(calc(100%-36px),1240px)] mx-auto py-24 sm:py-36"
-        >
+        {/* 4. FONCTIONNALITÉS */}
+        <section id="features" className="w-[min(calc(100%-36px),1240px)] mx-auto py-24 sm:py-36">
           <div className="max-w-[740px] mb-14">
-            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-[#22D3EE] mb-4">
-              Capacités clés
+            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-cyan-700 dark:text-[#22D3EE] mb-4">
+              {t('features.kicker')}
             </p>
             <h2 className="font-display text-[clamp(2.1rem,4.4vw,3.6rem)] font-bold leading-[1.08] mb-4">
-              Une précision chirurgicale sur{' '}
-              <span className="text-gradient-aqua">chaque litre.</span>
+              {t('features.titlePrefix')}{' '}
+              <span className="text-gradient-aqua">{t('features.titleHighlight')}</span>
             </h2>
-            <p className="text-slate-300 text-lg max-w-[54ch]">
-              Conçu pour les exploitations exigeantes, les infrastructures hôtelières et les réseaux industriels critiques.
+            <p className="text-slate-600 dark:text-slate-300 text-lg max-w-[54ch]">
+              {t('features.subtitle')}
             </p>
           </div>
 
           <TiltFeatureCards />
         </section>
 
-        {/* ====================================================================
-            5. DÉMO DASHBOARD — Maquette animée qui se construit au scroll
-            ==================================================================== */}
+        {/* 5. DÉMO DASHBOARD INTERACTIVE (RECHARTS + SIMULATION DE FUITE) */}
         <section
           id="dashboard-demo"
           className="w-[min(calc(100%-36px),1240px)] mx-auto py-24 sm:py-32"
         >
           <div className="max-w-[740px] mb-12">
-            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-[#22D3EE] mb-4">
-              Aperçu interactif
+            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-cyan-700 dark:text-[#22D3EE] mb-4">
+              {t('dashboard.kicker')}
             </p>
             <h2 className="font-display text-[clamp(2.1rem,4.4vw,3.6rem)] font-bold leading-[1.08] mb-4">
-              Votre tour de contrôle{' '}
-              <span className="text-gradient-aqua">en temps réel.</span>
+              {t('dashboard.titlePrefix')}{' '}
+              <span className="text-gradient-aqua">{t('dashboard.titleHighlight')}</span>
             </h2>
-            <p className="text-slate-300 text-lg max-w-[54ch]">
-              Visualisez la consommation réelle, les prédictions du modèle et les alertes critiques sur un seul écran.
+            <p className="text-slate-600 dark:text-slate-300 text-lg max-w-[56ch]">
+              {t('dashboard.subtitle')}
             </p>
           </div>
 
-          <DashboardDemo activeMode={dashMode} onModeChange={setDashMode} />
+          <DashboardDemo
+            activeMode={dashMode}
+            leakSimulated={leakSimulated}
+            onModeChange={setDashMode}
+            onToggleLeak={() => setLeakSimulated((prev) => !prev)}
+          />
         </section>
 
-        {/* ====================================================================
-            6. SECTEURS — Trois grandes cartes interactives + icône 3D
-            Scène 3D : Retour à une sphère équilibrée
-            ==================================================================== */}
-        <section
-          id="sectors"
-          className="w-[min(calc(100%-36px),1240px)] mx-auto py-24 sm:py-32"
-        >
+        {/* 6. SECTEURS */}
+        <section id="sectors" className="w-[min(calc(100%-36px),1240px)] mx-auto py-24 sm:py-32">
           <div className="max-w-[740px] mb-14">
-            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-[#A3E635] mb-4">
-              Secteurs d&apos;application
+            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-lime-700 dark:text-[#A3E635] mb-4">
+              {t('sectors.kicker')}
             </p>
             <h2 className="font-display text-[clamp(2.1rem,4.4vw,3.6rem)] font-bold leading-[1.08]">
-              Taillé pour vos{' '}
-              <span className="text-gradient-agri">contraintes terrain.</span>
+              {t('sectors.titlePrefix')}{' '}
+              <span className="text-gradient-agri">{t('sectors.titleHighlight')}</span>
             </h2>
           </div>
 
           <SectorCards onInspectSector={handleInspectSector} />
         </section>
 
-        {/* ====================================================================
-            7. RÉSULTATS — Compteurs animés
-            ==================================================================== */}
-        <section
-          id="results"
-          className="w-[min(calc(100%-36px),1240px)] mx-auto py-16 sm:py-24"
-        >
+        {/* 7. RÉSULTATS */}
+        <section id="results" className="w-[min(calc(100%-36px),1240px)] mx-auto py-16 sm:py-24">
           <div className="glass-panel rounded-3xl p-8 sm:p-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="flex flex-col gap-2">
-              <div className="font-mono-tabular text-4xl sm:text-[2.8rem] font-bold text-gradient-aqua leading-none">
-                <span className="counter" data-target="30" data-prefix="Jusqu'à -" data-suffix=" %">
-                  0 %
-                </span>
+            {resultsItems.map((res, idx) => (
+              <div
+                key={res.desc}
+                className={`flex flex-col gap-2 ${
+                  idx > 0 ? 'sm:border-s sm:border-slate-200 dark:sm:border-white/10 sm:ps-7' : ''
+                }`}
+              >
+                <div
+                  className={`font-mono-tabular text-4xl sm:text-[2.6rem] font-bold leading-none ${
+                    idx === 0
+                      ? 'text-gradient-aqua'
+                      : idx === 3
+                      ? 'text-lime-700 dark:text-[#A3E635]'
+                      : 'text-slate-900 dark:text-slate-100'
+                  }`}
+                >
+                  <span
+                    className="counter"
+                    data-target={res.target}
+                    data-prefix={res.prefix}
+                    data-suffix={res.suffix}
+                  >
+                    0
+                  </span>
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  {res.desc}
+                </p>
               </div>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                de consommation d&apos;eau dès la première année d&apos;exploitation
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:border-l sm:border-white/10 sm:pl-7">
-              <div className="font-mono-tabular text-4xl sm:text-[2.8rem] font-bold text-slate-100 leading-none">
-                <span className="counter" data-target="4" data-prefix="< " data-suffix=" min">
-                  0 min
-                </span>
-              </div>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                pour détecter et géolocaliser une fuite active sur le réseau
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2 lg:border-l lg:border-white/10 lg:pl-7">
-              <div className="font-mono-tabular text-4xl sm:text-[2.8rem] font-bold text-slate-100 leading-none">
-                <span className="counter" data-target="96" data-suffix=" %">
-                  0 %
-                </span>
-              </div>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                de précision prédictive des séries temporelles à horizon 7 jours
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2 sm:border-l sm:border-white/10 sm:pl-7">
-              <div className="font-mono-tabular text-4xl sm:text-[2.8rem] font-bold text-[#A3E635] leading-none">
-                <span className="counter" data-target="180" data-prefix="+">
-                  +0
-                </span>
-              </div>
-              <p className="text-sm text-slate-300 leading-relaxed">
-                sites agricoles, hôteliers et industriels connectés en continu
-              </p>
-            </div>
+            ))}
           </div>
         </section>
 
-        {/* ====================================================================
-            8. TÉMOIGNAGES — Slider fluide
-            ==================================================================== */}
+        {/* 8. ASSISTANT IA « DEMANDEZ À AQUAMIND » */}
+        <section
+          id="assistant"
+          className="w-[min(calc(100%-36px),1240px)] mx-auto py-24 sm:py-32"
+        >
+          <div className="max-w-[740px] mb-12">
+            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-cyan-700 dark:text-[#22D3EE] mb-4">
+              {t('assistant.kicker')}
+            </p>
+            <h2 className="font-display text-[clamp(2.1rem,4.4vw,3.6rem)] font-bold leading-[1.08] mb-4">
+              {t('assistant.titlePrefix')}{' '}
+              <span className="text-gradient-aqua">{t('assistant.titleHighlight')}</span>
+            </h2>
+            <p className="text-slate-600 dark:text-slate-300 text-lg max-w-[54ch]">
+              {t('assistant.subtitle')}
+            </p>
+          </div>
+
+          <AquaMindAssistant locale={locale} />
+        </section>
+
+        {/* 9. TÉMOIGNAGES */}
         <section
           id="testimonials"
           className="w-[min(calc(100%-36px),1240px)] mx-auto py-24 sm:py-32"
         >
           <div className="max-w-[740px] mb-12">
-            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-[#22D3EE] mb-4">
-              Retours terrain
+            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-cyan-700 dark:text-[#22D3EE] mb-4">
+              {t('testimonials.kicker')}
             </p>
             <h2 className="font-display text-[clamp(2.1rem,4.4vw,3.6rem)] font-bold leading-[1.08]">
-              Ils pilotent déjà{' '}
-              <span className="text-gradient-aqua">chaque goutte.</span>
+              {t('testimonials.titlePrefix')}{' '}
+              <span className="text-gradient-aqua">{t('testimonials.titleHighlight')}</span>
             </h2>
           </div>
 
           <TestimonialsSlider />
         </section>
 
-        {/* ====================================================================
-            9. CTA FINAL — Formulaire de démo sur fond de vagues 3D
-            ==================================================================== */}
+        {/* 10. CONTACT / DEMANDE DE DÉMO (ZOD) */}
         <section
           id="contact"
           className="w-[min(calc(100%-36px),1240px)] mx-auto pt-16 pb-28 sm:pt-20 sm:pb-36"
         >
           <div className="glass-panel rounded-[28px] p-7 sm:p-12 lg:p-14 grid grid-cols-1 lg:grid-cols-[1fr_1.05fr] gap-10 lg:gap-12 items-center">
             <div>
-              <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-[#22D3EE] mb-4">
-                Passer à l&apos;action
+              <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-cyan-700 dark:text-[#22D3EE] mb-4">
+                {t('contact.kicker')}
               </p>
               <h2 className="font-display text-[clamp(2rem,4vw,3.2rem)] font-bold leading-[1.08] mb-5">
-                Prêt à reprendre{' '}
-                <span className="text-gradient-aqua">le contrôle ?</span>
+                {t('contact.titlePrefix')}{' '}
+                <span className="text-gradient-aqua">{t('contact.titleHighlight')}</span>
               </h2>
-              <p className="text-slate-300 text-base sm:text-lg leading-relaxed max-w-[42ch] mb-7">
-                Planifiez une démonstration personnalisée avec nos ingénieurs hydrauliques et data scientists sur vos propres données.
+              <p className="text-slate-600 dark:text-slate-300 text-base sm:text-lg leading-relaxed max-w-[42ch] mb-7">
+                {t('contact.subtitle')}
               </p>
 
-              <ul className="space-y-3 text-sm text-slate-300">
-                <li className="flex items-center gap-2.5">
-                  <Check size={17} className="text-[#2DD4BF] shrink-0" aria-hidden="true" />
-                  Audit rapide de potentiel d&apos;économie sous 48h
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check size={17} className="text-[#2DD4BF] shrink-0" aria-hidden="true" />
-                  Compatible compteurs, automates et sondes existants
-                </li>
-                <li className="flex items-center gap-2.5">
-                  <Check size={17} className="text-[#2DD4BF] shrink-0" aria-hidden="true" />
-                  Déploiement pilote sans interruption d&apos;activité
-                </li>
+              <ul className="space-y-3 text-sm text-slate-700 dark:text-slate-300">
+                {contactPerks.map((perk) => (
+                  <li key={perk} className="flex items-center gap-2.5">
+                    <Check
+                      size={17}
+                      className="text-teal-600 dark:text-[#2DD4BF] shrink-0"
+                      aria-hidden="true"
+                    />
+                    <span>{perk}</span>
+                  </li>
+                ))}
               </ul>
             </div>
 
@@ -757,32 +774,65 @@ export default function App() {
         </section>
       </main>
 
-      {/* ======================================================================
-          10. FOOTER MINIMAL
-          ====================================================================== */}
-      <footer className="relative z-[2] border-t border-white/10 bg-[#05121F]/90 py-10">
+      {/* 11. FOOTER MINIMAL */}
+      <footer className="relative z-[2] border-t border-slate-200 dark:border-white/10 bg-white/85 dark:bg-[#05121F]/90 py-10">
         <div className="w-[min(calc(100%-36px),1240px)] mx-auto flex flex-wrap items-center justify-between gap-6">
           <div className="flex flex-wrap items-baseline gap-2.5">
-            <span className="font-display font-bold text-lg text-slate-100">AquaMind</span>
-            <span className="text-sm text-slate-400">— L&apos;eau, enfin sous contrôle.</span>
+            <span className="font-display font-bold text-lg text-slate-900 dark:text-slate-100">
+              AquaMind
+            </span>
+            <span className="text-sm text-slate-500 dark:text-slate-400">
+              {t('footer.slogan')}
+            </span>
           </div>
 
-          <nav aria-label="Liens de pied de page" className="flex flex-wrap gap-6 text-sm text-slate-400">
-            <a href="#problem" onClick={(e) => { e.preventDefault(); scrollToTarget('#problem'); }} className="hover:text-[#22D3EE] transition-colors">
-              Enjeux
+          <nav
+            aria-label="Liens de pied de page"
+            className="flex flex-wrap gap-6 text-sm text-slate-600 dark:text-slate-400"
+          >
+            <a
+              href="#problem"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToTarget('#problem');
+              }}
+              className="hover:text-cyan-700 dark:hover:text-[#22D3EE] transition-colors"
+            >
+              {t('nav.problem')}
             </a>
-            <a href="#how-it-works" onClick={(e) => { e.preventDefault(); scrollToTarget('#how-it-works'); }} className="hover:text-[#22D3EE] transition-colors">
-              Technologie
+            <a
+              href="#how-it-works"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToTarget('#how-it-works');
+              }}
+              className="hover:text-cyan-700 dark:hover:text-[#22D3EE] transition-colors"
+            >
+              {t('nav.how')}
             </a>
-            <a href="#sectors" onClick={(e) => { e.preventDefault(); scrollToTarget('#sectors'); }} className="hover:text-[#22D3EE] transition-colors">
-              Secteurs
+            <a
+              href="#assistant"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToTarget('#assistant');
+              }}
+              className="hover:text-cyan-700 dark:hover:text-[#22D3EE] transition-colors"
+            >
+              {t('nav.assistant')}
             </a>
-            <a href="#contact" onClick={(e) => { e.preventDefault(); scrollToTarget('#contact'); }} className="hover:text-[#22D3EE] transition-colors">
-              Contact
+            <a
+              href="#contact"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToTarget('#contact');
+              }}
+              className="hover:text-cyan-700 dark:hover:text-[#22D3EE] transition-colors"
+            >
+              {t('nav.cta')}
             </a>
           </nav>
 
-          <div className="text-xs text-slate-500">© 2026 AquaMind. Tous droits réservés.</div>
+          <div className="text-xs text-slate-500">{t('footer.rights')}</div>
         </div>
       </footer>
     </div>

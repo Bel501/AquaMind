@@ -16,6 +16,8 @@ export interface SceneTargets {
 
 interface WaterCanvas3DProps {
   enabled: boolean;
+  theme: 'dark' | 'light';
+  leakSimulated: boolean;
   targetsRef: React.MutableRefObject<SceneTargets>;
 }
 
@@ -40,9 +42,19 @@ function detectSoftwareGl(): boolean {
   }
 }
 
-export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
+export function WaterCanvas3D({
+  enabled,
+  theme,
+  leakSimulated,
+  targetsRef,
+}: WaterCanvas3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [contextLost, setContextLost] = useState(false);
+
+  const themeRef = useRef(theme);
+  const leakSimulatedRef = useRef(leakSimulated);
+  themeRef.current = theme;
+  leakSimulatedRef.current = leakSimulated;
 
   useEffect(() => {
     if (!enabled) return;
@@ -70,7 +82,9 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.12;
-    renderer.setPixelRatio(isSoftwareGl ? 1 : Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2));
+    renderer.setPixelRatio(
+      isSoftwareGl ? 1 : Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2)
+    );
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     const domEl = renderer.domElement;
@@ -89,20 +103,27 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
     domEl.addEventListener('webglcontextlost', onContextLost);
     domEl.addEventListener('webglcontextrestored', onContextRestored);
 
-    const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x05121f);
-    scene.fog = new THREE.FogExp2(0x05121f, 0.042);
+    const darkBg = new THREE.Color(0x05121f);
+    const lightBg = new THREE.Color(0xe6f2fa);
 
-    const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+    const scene = new THREE.Scene();
+    scene.background = (themeRef.current === 'dark' ? darkBg : lightBg).clone();
+    const fog = new THREE.FogExp2(themeRef.current === 'dark' ? 0x05121f : 0xe6f2fa, 0.042);
+    scene.fog = fog;
+
+    const camera = new THREE.PerspectiveCamera(
+      45,
+      window.innerWidth / window.innerHeight,
+      0.1,
+      100
+    );
     camera.position.set(0, 0.2, 7.2);
 
-    // Studio environment map for realistic water refraction and pipe highlights
     const pmremGenerator = new THREE.PMREMGenerator(renderer);
     const envTarget = pmremGenerator.fromScene(new RoomEnvironment(), 0.04);
     scene.environment = envTarget.texture;
     pmremGenerator.dispose();
 
-    // Warm/cool balanced 3-point lighting + hemisphere fill
     const hemiLight = new THREE.HemisphereLight(0x22d3ee, 0x05121f, 0.9);
     scene.add(hemiLight);
 
@@ -118,12 +139,13 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
     agriAccentLight.position.set(3, 3.2, 2.2);
     scene.add(agriAccentLight);
 
-    // Subtle background light orbs to enrich water droplet refraction
+    const disposables: Array<{ dispose: () => void }> = [envTarget];
+
+    // Background refractive orbs
     const backdropGroup = new THREE.Group();
     const orbGeo = new THREE.SphereGeometry(0.65, 14, 14);
+    disposables.push(orbGeo);
     const orbColors = [0x22d3ee, 0x2dd4bf, 0x0284c7, 0xa3e635];
-    const disposables: Array<{ dispose: () => void }> = [orbGeo, envTarget];
-
     for (let i = 0; i < 6; i++) {
       const orbMat = new THREE.MeshBasicMaterial({
         color: orbColors[i % orbColors.length],
@@ -179,7 +201,6 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
     const dropMesh = new THREE.Mesh(dropGeo, dropMat);
     heroGroup.add(dropMesh);
 
-    // Inner caustic core
     const coreGeo = new THREE.IcosahedronGeometry(0.42, 2);
     const coreMat = new THREE.MeshStandardMaterial({
       color: 0x22d3ee,
@@ -196,7 +217,6 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
     coreMesh.position.y = -0.15;
     heroGroup.add(coreMesh);
 
-    // Thin orbital ring around droplet
     const dropRingGeo = new THREE.TorusGeometry(1.72, 0.012, 10, 72);
     const dropRingMat = new THREE.MeshBasicMaterial({
       color: 0x2dd4bf,
@@ -208,7 +228,6 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
     dropRingMesh.rotation.set(Math.PI * 0.36, 0.25, 0);
     heroGroup.add(dropRingMesh);
 
-    // Instanced water micro-droplets orbiting
     const dropletCount = isMobile ? 42 : 120;
     const microGeo = new THREE.SphereGeometry(0.032, 8, 8);
     const microMat = new THREE.MeshStandardMaterial({
@@ -271,7 +290,6 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
 
     const nodesMesh = new THREE.InstancedMesh(nodeGeo, nodeMat, nodeCount);
     const nodeRingsMesh = new THREE.InstancedMesh(nodeRingGeo, nodeRingMat, nodeCount);
-
     nodePositions.forEach((pos, idx) => {
       _dummy.position.copy(pos);
       _dummy.rotation.set(idx * 0.4, idx * 0.7, 0);
@@ -371,10 +389,10 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
     });
     disposables.push(terrainGeo, terrainMat, terrainWireMat);
 
-    const terrainMesh = new THREE.Mesh(terrainGeo, terrainMat);
+    terrainGroup.add(new THREE.Mesh(terrainGeo, terrainMat));
     const terrainWire = new THREE.Mesh(terrainGeo, terrainWireMat);
     terrainWire.position.y = 0.015;
-    terrainGroup.add(terrainMesh, terrainWire);
+    terrainGroup.add(terrainWire);
 
     function buildForecastCurve(yBase: number, amp: number, colorHex: number) {
       const pts: THREE.Vector3[] = [];
@@ -394,7 +412,6 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
       disposables.push(tubeGeo, tubeMat);
       return new THREE.Mesh(tubeGeo, tubeMat);
     }
-
     terrainGroup.add(buildForecastCurve(1.05, 0.25, 0x22d3ee));
     terrainGroup.add(buildForecastCurve(1.45, 0.18, 0xa3e635));
 
@@ -434,7 +451,6 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
       cyl.quaternion.setFromUnitVectors(_up, _vecB.copy(_vecA).normalize());
       pipesGroup.add(cyl);
 
-      // Flanged collar midway
       const flange = new THREE.Mesh(flangeGeo, collarMat);
       flange.scale.set(radius, 1, radius);
       flange.position.copy(p1).addScaledVector(_vecA, 0.5);
@@ -454,12 +470,12 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
 
     const leakPos = new THREE.Vector3(0.4, 0.6, 0);
     const leakCoreGeo = new THREE.SphereGeometry(0.21, 16, 16);
-    const leakCoreMat = new THREE.MeshBasicMaterial({ color: 0xfb7185 });
+    const leakCoreMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
     const leakHaloGeo = new THREE.SphereGeometry(0.55, 16, 16);
     const leakHaloMat = new THREE.MeshBasicMaterial({
       color: 0xf97316,
       transparent: true,
-      opacity: 0.28,
+      opacity: 0.3,
       blending: THREE.AdditiveBlending,
     });
     disposables.push(leakCoreGeo, leakCoreMat, leakHaloGeo, leakHaloMat);
@@ -474,7 +490,7 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
     disposables.push(ringGeo);
     const pulseRings = [0, 1, 2].map((i) => {
       const mat = new THREE.MeshBasicMaterial({
-        color: i % 2 === 0 ? 0xfb7185 : 0xf97316,
+        color: i % 2 === 0 ? 0xf97316 : 0xfb7185,
         side: THREE.DoubleSide,
         transparent: true,
         opacity: 0.8,
@@ -486,10 +502,9 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
       return { mesh, mat, phase: i / 3 };
     });
 
-    // Spray particles escaping from leak
     const sprayCount = isMobile ? 12 : 24;
     const sprayGeo = new THREE.SphereGeometry(0.032, 6, 6);
-    const sprayMat = new THREE.MeshBasicMaterial({ color: 0xfb7185 });
+    const sprayMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
     disposables.push(sprayGeo, sprayMat);
     const sprayMesh = new THREE.InstancedMesh(sprayGeo, sprayMat, sprayCount);
     sprayMesh.frustumCulled = false;
@@ -529,7 +544,6 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
     auraRing2.rotation.set(-Math.PI * 0.32, 0.3, 0);
     optimalGroup.add(calmSphere, auraRing1, auraRing2);
 
-    // 3D Ocean waves under CTA form
     const wavesGroup = new THREE.Group();
     wavesGroup.position.set(0, -1.75, -1.2);
     wavesGroup.scale.setScalar(0.001);
@@ -551,7 +565,6 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
       renderer.compile(scene, camera);
     }
 
-    // Current interpolated scene weights
     const currentWeights: SceneTargets = { ...targetsRef.current };
     const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
 
@@ -569,9 +582,17 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
     };
     window.addEventListener('resize', onResize);
 
-    // =========================================================================
-    // RENDER LOOP (GPU rAF / Software WebGL afterDraw pacing)
-    // =========================================================================
+    // Pause rendering when browser tab is hidden to save GPU/CPU
+    let isTabHidden = document.visibilityState === 'hidden';
+    const onVisibilityChange = () => {
+      isTabHidden = document.visibilityState === 'hidden';
+      if (!isTabHidden && !disposed) {
+        clock.getDelta();
+        scheduleNext();
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
     const clock = new THREE.Clock();
     let frameId = 0;
     let disposed = false;
@@ -585,7 +606,7 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
       const sync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0);
       gl.flush();
       const poll = () => {
-        if (disposed) return;
+        if (disposed || isTabHidden) return;
         const state = sync && gl.getSyncParameter(sync, gl.SYNC_STATUS);
         if (state === gl.UNSIGNALED) {
           frameId = window.setTimeout(poll, 5);
@@ -597,13 +618,26 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
       frameId = window.setTimeout(poll, 5);
     }
 
+    function scheduleNext() {
+      if (disposed || isTabHidden) return;
+      if (isSoftwareGl) {
+        afterDraw(tick);
+      } else {
+        frameId = requestAnimationFrame(tick);
+      }
+    }
+
     function tick() {
-      if (disposed) return;
+      if (disposed || isTabHidden) return;
       const delta = Math.min(clock.getDelta(), 0.05);
       const t = prefersReducedMotion ? 0.5 : clock.elapsedTime;
       const targets = targetsRef.current;
 
-      // Frame-rate independent exponential damping
+      // Adapt scene background/fog color smoothly when theme switches
+      const targetBg = themeRef.current === 'dark' ? darkBg : lightBg;
+      (scene.background as THREE.Color).lerp(targetBg, 0.12);
+      fog.color.copy(scene.background as THREE.Color);
+
       const lambda = 6.5;
       currentWeights.hero = THREE.MathUtils.damp(currentWeights.hero, targets.hero, lambda, delta);
       currentWeights.data = THREE.MathUtils.damp(currentWeights.data, targets.data, lambda, delta);
@@ -704,29 +738,30 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
       const wLeaks = currentWeights.leaks;
       pipesGroup.visible = wLeaks > 0.01;
       if (pipesGroup.visible) {
+        const leakBoost = leakSimulatedRef.current ? 1.45 : 1.0;
         pipesGroup.scale.setScalar(Math.max(0.001, wLeaks));
         pipesGroup.rotation.y = Math.sin(t * 0.3) * 0.2 + pointer.x * 0.24;
         pipesGroup.rotation.x = 0.12 + pointer.y * 0.14;
 
-        leakHalo.scale.setScalar(1 + Math.sin(t * 5) * 0.22);
+        leakHalo.scale.setScalar((1 + Math.sin(t * 5) * 0.22) * leakBoost);
 
         for (let i = 0; i < pulseRings.length; i++) {
           const r = pulseRings[i];
-          const cycle = (t * 0.85 + r.phase) % 1;
-          r.mesh.scale.setScalar(0.7 + cycle * 3.4);
+          const cycle = (t * (0.85 * leakBoost) + r.phase) % 1;
+          r.mesh.scale.setScalar((0.7 + cycle * 3.4) * leakBoost);
           r.mat.opacity = (1 - cycle) * 0.85 * wLeaks;
           r.mesh.lookAt(camera.position);
         }
 
         for (let i = 0; i < sprayCount; i++) {
           const s = sprayData[i];
-          const cycle = (t * 1.15 + s.phase) % 1;
+          const cycle = (t * (1.15 * leakBoost) + s.phase) % 1;
           _dummy.position.set(
-            leakPos.x + s.vx * cycle,
+            leakPos.x + s.vx * cycle * leakBoost,
             leakPos.y + cycle * 0.45 - cycle * cycle * 1.65,
-            leakPos.z + s.vz * cycle
+            leakPos.z + s.vz * cycle * leakBoost
           );
-          _dummy.scale.setScalar((1 - cycle) * 1.15);
+          _dummy.scale.setScalar((1 - cycle) * 1.15 * leakBoost);
           _dummy.updateMatrix();
           sprayMesh.setMatrixAt(i, _dummy.matrix);
         }
@@ -760,24 +795,16 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
       }
 
       renderer.render(scene, camera);
-
-      if (isSoftwareGl) {
-        afterDraw(tick);
-      } else {
-        frameId = requestAnimationFrame(tick);
-      }
+      scheduleNext();
     }
 
-    if (isSoftwareGl) {
-      afterDraw(tick);
-    } else {
-      frameId = requestAnimationFrame(tick);
-    }
+    scheduleNext();
 
     return () => {
       disposed = true;
       cancelAnimationFrame(frameId);
       clearTimeout(frameId);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('resize', onResize);
       domEl.removeEventListener('webglcontextlost', onContextLost);
@@ -801,7 +828,9 @@ export function WaterCanvas3D({ enabled, targetsRef }: WaterCanvas3DProps) {
           className="w-full h-full"
           style={{
             background:
-              'radial-gradient(circle at 70% 40%, rgba(34,211,238,0.16), transparent 55%), #05121F',
+              theme === 'dark'
+                ? 'radial-gradient(circle at 70% 40%, rgba(34,211,238,0.16), transparent 55%), #05121F'
+                : 'radial-gradient(circle at 70% 40%, rgba(14,165,233,0.16), transparent 55%), #E6F2FA',
           }}
         />
       )}

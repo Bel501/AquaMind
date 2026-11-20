@@ -8,6 +8,7 @@ interface MagneticButtonProps {
   className?: string;
   children: React.ReactNode;
   ariaLabel?: string;
+  disabled?: boolean;
   enableRipple?: boolean;
 }
 
@@ -19,6 +20,7 @@ export function MagneticButton({
   className = '',
   children,
   ariaLabel,
+  disabled = false,
   enableRipple = true,
 }: MagneticButtonProps) {
   const elRef = useRef<HTMLAnchorElement | HTMLButtonElement | null>(null);
@@ -32,7 +34,7 @@ export function MagneticButton({
 
   const spawnRipple = (clientX: number, clientY: number) => {
     const el = elRef.current;
-    if (!el || !enableRipple || isReducedMotion) return;
+    if (!el || !enableRipple || isReducedMotion || disabled) return;
     const rect = el.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height) * 0.65;
     const ripple = document.createElement('span');
@@ -47,7 +49,7 @@ export function MagneticButton({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
     const el = elRef.current;
-    if (!el || isReducedMotion || isTouch) return;
+    if (!el || isReducedMotion || isTouch || disabled) return;
     const rect = el.getBoundingClientRect();
     const dx = (e.clientX - (rect.left + rect.width / 2)) * 0.24;
     const dy = (e.clientY - (rect.top + rect.height / 2)) * 0.24;
@@ -65,19 +67,20 @@ export function MagneticButton({
   };
 
   const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+    if (disabled) return;
     spawnRipple(e.clientX, e.clientY);
     onClick?.(e);
   };
 
   const baseClasses =
-    'relative inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full font-display font-semibold whitespace-nowrap shrink-0 transition-[box-shadow,background-color,border-color,color] duration-200 cursor-pointer will-change-transform';
+    'relative inline-flex items-center justify-center gap-2.5 overflow-hidden rounded-full font-display font-semibold whitespace-nowrap shrink-0 transition-[box-shadow,background-color,border-color,color] duration-200 cursor-pointer will-change-transform disabled:opacity-60 disabled:cursor-not-allowed';
 
   const variantClasses =
     variant === 'primary'
-      ? 'px-7 py-4 text-[0.96rem] bg-gradient-to-br from-[#22D3EE] to-[#2DD4BF] text-[#05121F] shadow-[0_10px_30px_rgba(34,211,238,0.28)] hover:shadow-[0_14px_42px_rgba(34,211,238,0.48)]'
+      ? 'px-7 py-3.5 text-[0.95rem] bg-gradient-to-br from-[#0891B2] to-[#0D9488] dark:from-[#22D3EE] dark:to-[#2DD4BF] text-white dark:text-[#05121F] shadow-[0_10px_28px_rgba(8,145,178,0.28)] dark:shadow-[0_10px_30px_rgba(34,211,238,0.28)] hover:shadow-[0_14px_40px_rgba(34,211,238,0.45)]'
       : variant === 'nav'
-      ? 'px-5 py-2.5 text-sm bg-[#22D3EE]/14 border border-[#22D3EE]/38 text-[#22D3EE] hover:bg-[#22D3EE] hover:text-[#05121F] hover:shadow-[0_0_24px_rgba(34,211,238,0.45)]'
-      : 'px-7 py-4 text-[0.96rem] bg-[#091C30]/80 border border-[#22D3EE]/30 text-slate-100 hover:border-[#22D3EE] hover:bg-[#22D3EE]/12';
+      ? 'px-4 py-2 text-xs sm:text-sm bg-cyan-600/12 dark:bg-[#22D3EE]/14 border border-cyan-600/35 dark:border-[#22D3EE]/38 text-cyan-800 dark:text-[#22D3EE] hover:bg-cyan-600 dark:hover:bg-[#22D3EE] hover:text-white dark:hover:text-[#05121F]'
+      : 'px-7 py-3.5 text-[0.95rem] bg-white/85 dark:bg-[#091C30]/80 border border-cyan-700/25 dark:border-[#22D3EE]/30 text-slate-900 dark:text-slate-100 hover:border-cyan-600 dark:hover:border-[#22D3EE] hover:bg-cyan-50/90 dark:hover:bg-[#22D3EE]/12';
 
   const combined = `${baseClasses} ${variantClasses} ${className}`;
 
@@ -104,6 +107,7 @@ export function MagneticButton({
     <button
       ref={elRef as React.RefObject<HTMLButtonElement>}
       type={type}
+      disabled={disabled}
       aria-label={ariaLabel}
       className={combined}
       onMouseMove={handleMouseMove}

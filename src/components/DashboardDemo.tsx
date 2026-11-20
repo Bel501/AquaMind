@@ -1,226 +1,206 @@
-import { useEffect, useRef, useState } from 'react';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Check, AlertTriangle, Sparkles } from 'lucide-react';
-
-gsap.registerPlugin(ScrollTrigger);
+import { useEffect, useMemo, useState } from 'react';
+import {
+  Area,
+  CartesianGrid,
+  ComposedChart,
+  Line,
+  ReferenceDot,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import {
+  AlertTriangle,
+  Check,
+  CloudRain,
+  Droplets,
+  Gauge,
+  ShieldAlert,
+  Sparkles,
+  Waves,
+} from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export type DashMode = 'agri' | 'hotel' | 'industry';
 
-interface DashConfig {
-  label: string;
-  title: string;
-  subtitle: string;
-  saving: string;
-  savingApplied: string;
-  metricLabel: string;
-  metricVal: string;
-  conf: string;
-  alertTitle: string;
-  alertDesc: string;
-  recoTitle: string;
-  recoDesc: string;
-  anomalyLabel: string;
-  realPath: string;
-  predPath: string;
-  areaPath: string;
-  pinX: number;
-  pinY: number;
+interface TelemetryPoint {
+  time: string;
+  actual: number;
+  predicted: number;
+  bandBase: number;
+  bandSpan: number;
+  isAnomaly?: boolean;
 }
 
-const DASH_MODES: Record<DashMode, DashConfig> = {
+interface ModePreset {
+  label: string;
+  siteTitle: string;
+  baseFlow: number;
+  moisture: number;
+  pressure: number;
+  weather: string;
+  when: string;
+  liters: string;
+  zone: string;
+}
+
+const MODE_PRESETS: Record<DashMode, ModePreset> = {
   agri: {
     label: 'Exploitation Agricole',
-    title: 'Débit vs Prédiction IA — Domaine Olivier Nord',
-    subtitle: 'Fenêtre 24h · Résolution 5 min · 48 sondes',
-    saving: '-29,4 %',
-    savingApplied: '-33,1 %',
-    metricLabel: 'Humidité racinaire',
-    metricVal: '34,2 %',
-    conf: '96,4 %',
-    alertTitle: 'Vanne secondaire B2 — Débit résiduel anormal',
-    alertDesc:
-      'Écart de +38 % par rapport à la série temporelle attendue depuis 03h14. Perte estimée : 1 080 L/h.',
-    recoTitle: "Décaler l'irrigation de 14h à 22h30",
-    recoDesc:
-      "Pluie prévue (6 mm) à 17h et baisse d'évapotranspiration. Gain estimé : 4 200 L économisés.",
-    anomalyLabel: 'Anomalie B2 (+18 L/min)',
-    realPath:
-      'M20 185 C80 180, 130 165, 190 142 C250 120, 300 138, 355 128 C395 120, 420 54, 448 56 C480 58, 520 146, 620 140',
-    predPath:
-      'M20 188 C80 182, 130 168, 190 145 C250 124, 300 140, 355 132 C410 126, 460 134, 520 148 C565 156, 595 145, 620 142',
-    areaPath:
-      'M20 185 C80 180, 130 165, 190 142 C250 120, 300 138, 355 128 C395 120, 420 54, 448 56 C480 58, 520 146, 620 140 L620 220 L20 220 Z',
-    pinX: 446,
-    pinY: 56,
+    siteTitle: 'Domaine Olivier Nord · 48 sondes LoRaWAN',
+    baseFlow: 14.2,
+    moisture: 34.2,
+    pressure: 3.1,
+    weather: '24 °C · ET0 4.6 mm',
+    when: '22h30 – 23h45',
+    liters: '4 200 L (-31 %)',
+    zone: 'Parcelle B2 · Vignes Sud',
   },
   hotel: {
     label: 'Resort Hôtelier',
-    title: 'Consommation Réseau — Azur Resort & Spa (140 ch.)',
-    subtitle: 'Fenêtre 24h · Résolution 5 min · 32 compteurs',
-    saving: '-24,8 %',
-    savingApplied: '-27,5 %',
-    metricLabel: 'Pression réseau',
-    metricVal: '2,8 bar',
-    conf: '97,1 %',
-    alertTitle: 'Circuit Piscine Est — Micro-fuite nocturne',
-    alertDesc:
-      'Débit constant de 14 L/min détecté entre 01h et 04h hors heures de remplissage automatique.',
-    recoTitle: "Isoler la boucle Nord durant l'audit",
-    recoDesc:
-      "Réduction immédiate de la pression de nuit et notification transmise à l'équipe technique.",
-    anomalyLabel: 'Fuite nocturne (+14 L/min)',
-    realPath:
-      'M20 170 C90 160, 145 148, 210 156 C275 162, 325 78, 365 76 C410 74, 455 148, 525 138 C568 132, 595 128, 620 124',
-    predPath:
-      'M20 172 C90 162, 145 150, 210 158 C275 164, 325 154, 365 152 C410 150, 455 148, 525 140 C568 134, 595 130, 620 126',
-    areaPath:
-      'M20 170 C90 160, 145 148, 210 156 C275 162, 325 78, 365 76 C410 74, 455 148, 525 138 C568 132, 595 128, 620 124 L620 220 L20 220 Z',
-    pinX: 365,
-    pinY: 76,
+    siteTitle: 'Azur Resort & Spa · 32 compteurs réseau',
+    baseFlow: 9.8,
+    moisture: 68.0,
+    pressure: 2.8,
+    weather: '27 °C · Humidité 54 %',
+    when: '01h15 – 02h00',
+    liters: '1 850 L (-25 %)',
+    zone: 'Boucle Piscine & Arrosage Est',
   },
   industry: {
     label: 'Site Industriel',
-    title: 'Boucle Refroidissement — Groupe AgroNova Ligne 3',
-    subtitle: 'Fenêtre 24h · Résolution 1 min · 64 débitmètres',
-    saving: '-21,6 %',
-    savingApplied: '-25,2 %',
-    metricLabel: 'Température circuit',
-    metricVal: '18,4 °C',
-    conf: '98,2 %',
-    alertTitle: 'Échangeur C4 — Dérive consommation appoint',
-    alertDesc:
-      'Surconsommation progressive de +11 % sur 72h isolée par analyse de séries temporelles.',
-    recoTitle: 'Recalibrer la purge automatique',
-    recoDesc:
-      'Ajustement des cycles de déconcentration : -18 m³/jour sans impact sur le rendement thermique.',
-    anomalyLabel: 'Dérive C4 (+11 %)',
-    realPath:
-      'M20 155 C85 152, 155 146, 225 142 C295 138, 370 128, 430 112 C480 98, 510 68, 536 72 C565 76, 592 118, 620 116',
-    predPath:
-      'M20 156 C85 154, 155 148, 225 144 C295 142, 370 138, 430 136 C480 134, 515 132, 540 130 C570 128, 595 126, 620 124',
-    areaPath:
-      'M20 155 C85 152, 155 146, 225 142 C295 138, 370 128, 430 112 C480 98, 510 68, 536 72 C565 76, 592 118, 620 116 L620 220 L20 220 Z',
-    pinX: 536,
-    pinY: 72,
+    siteTitle: 'Groupe AgroNova Ligne 3 · 64 débitmètres',
+    baseFlow: 26.5,
+    moisture: 42.0,
+    pressure: 4.4,
+    weather: '18,4 °C boucle · Appoint',
+    when: 'Cycle continu 04h00',
+    liters: '18 000 L (-22 %)',
+    zone: 'Échangeur C4 · Refroidissement',
   },
 };
 
-interface DashboardDemoProps {
-  activeMode: DashMode;
-  onModeChange: (mode: DashMode) => void;
+function generateInitialSeries(baseFlow: number): TelemetryPoint[] {
+  const now = new Date();
+  const points: TelemetryPoint[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const t = new Date(now.getTime() - i * 5 * 60_000);
+    const label = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(
+      2,
+      '0'
+    )}`;
+    const wave = Math.sin((11 - i) * 0.55) * 1.4;
+    const predicted = Number((baseFlow + wave).toFixed(2));
+    const actual = Number((predicted + (Math.random() - 0.48) * 0.7).toFixed(2));
+    const bandBase = Number(Math.max(0, predicted - 1.1).toFixed(2));
+    const bandSpan = 2.2;
+    points.push({ time: label, actual, predicted, bandBase, bandSpan });
+  }
+  return points;
 }
 
-export function DashboardDemo({ activeMode, onModeChange }: DashboardDemoProps) {
+interface DashboardDemoProps {
+  activeMode: DashMode;
+  leakSimulated: boolean;
+  onModeChange: (mode: DashMode) => void;
+  onToggleLeak: () => void;
+}
+
+export function DashboardDemo({
+  activeMode,
+  leakSimulated,
+  onModeChange,
+  onToggleLeak,
+}: DashboardDemoProps) {
+  const { t } = useTranslation();
+  const preset = MODE_PRESETS[activeMode];
+
+  const [series, setSeries] = useState<TelemetryPoint[]>(() =>
+    generateInitialSeries(preset.baseFlow)
+  );
   const [appliedModes, setAppliedModes] = useState<Record<DashMode, boolean>>({
     agri: false,
     hotel: false,
     industry: false,
   });
+  const [tickCount, setTickCount] = useState(0);
 
-  const shellRef = useRef<HTMLDivElement>(null);
-  const realPathRef = useRef<SVGPathElement>(null);
-  const predPathRef = useRef<SVGPathElement>(null);
-  const areaPathRef = useRef<SVGPathElement>(null);
-  const pinRef = useRef<SVGGElement>(null);
-
-  const data = DASH_MODES[activeMode];
-  const isApplied = appliedModes[activeMode];
-
-  // Build animation on scroll
+  // Reset series cleanly when sector mode changes
   useEffect(() => {
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const shell = shellRef.current;
-    const realPath = realPathRef.current;
-    const predPath = predPathRef.current;
-    const areaPath = areaPathRef.current;
-    const pin = pinRef.current;
-
-    if (!shell || !realPath || !predPath || !areaPath || !pin) return;
-
-    if (prefersReduced) {
-      areaPath.style.opacity = '1';
-      pin.style.opacity = '1';
-      return;
-    }
-
-    const ctx = gsap.context(() => {
-      const realLen = realPath.getTotalLength();
-      const predLen = predPath.getTotalLength();
-
-      gsap.set(realPath, { strokeDasharray: realLen, strokeDashoffset: realLen });
-      gsap.set(predPath, { strokeDasharray: predLen, strokeDashoffset: predLen });
-      gsap.set(areaPath, { opacity: 0 });
-      gsap.set(pin, { opacity: 0, scale: 0.7, transformOrigin: 'center center' });
-
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: shell,
-          start: 'top 76%',
-          once: true,
-        },
-      });
-
-      tl.from(shell.querySelectorAll('.dash-build'), {
-        y: 28,
-        opacity: 0,
-        duration: 0.65,
-        stagger: 0.12,
-        ease: 'power3.out',
-      })
-        .to(predPath, { strokeDashoffset: 0, duration: 1.0, ease: 'power2.inOut' }, '-=0.3')
-        .to(realPath, { strokeDashoffset: 0, duration: 1.15, ease: 'power2.inOut' }, '-=0.85')
-        .to(areaPath, { opacity: 1, duration: 0.6 }, '-=0.45')
-        .to(pin, { opacity: 1, scale: 1, duration: 0.45, ease: 'back.out(1.7)' }, '-=0.3');
-    }, shell);
-
-    return () => ctx.revert();
-  }, []);
-
-  // Subtle re-draw when switching tabs
-  useEffect(() => {
-    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const realPath = realPathRef.current;
-    const predPath = predPathRef.current;
-    if (!realPath || !predPath || prefersReduced) return;
-
-    const realLen = realPath.getTotalLength();
-    const predLen = predPath.getTotalLength();
-    gsap.fromTo(
-      realPath,
-      { strokeDasharray: realLen, strokeDashoffset: realLen },
-      { strokeDashoffset: 0, duration: 0.75, ease: 'power2.out' }
-    );
-    gsap.fromTo(
-      predPath,
-      { strokeDasharray: predLen, strokeDashoffset: predLen },
-      { strokeDashoffset: 0, duration: 0.65, ease: 'power2.out' }
-    );
+    setSeries(generateInitialSeries(MODE_PRESETS[activeMode].baseFlow));
   }, [activeMode]);
 
-  const handleApplyPlan = () => {
-    setAppliedModes((prev) => ({ ...prev, [activeMode]: true }));
-  };
+  // Live IoT telemetry stream every 2.2 seconds
+  useEffect(() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const intervalMs = prefersReduced ? 5000 : 2200;
+
+    const timer = window.setInterval(() => {
+      setTickCount((c) => c + 1);
+      setSeries((prev) => {
+        const last = prev[prev.length - 1];
+        const now = new Date();
+        const label = `${String(now.getHours()).padStart(2, '0')}:${String(
+          now.getMinutes()
+        ).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+
+        const nextPred = Number(
+          (
+            MODE_PRESETS[activeMode].baseFlow +
+            Math.sin((prev.length + Date.now() / 4000) * 0.6) * 1.35
+          ).toFixed(2)
+        );
+        const leakSpike = leakSimulated ? nextPred * 0.46 + 1.8 : 0;
+        const actual = Number(
+          (nextPred + leakSpike + (Math.random() - 0.45) * 0.65).toFixed(2)
+        );
+        const bandBase = Number(Math.max(0, nextPred - 1.1).toFixed(2));
+
+        const nextPoint: TelemetryPoint = {
+          time: label,
+          actual: Number.isFinite(actual) ? actual : last.actual,
+          predicted: nextPred,
+          bandBase,
+          bandSpan: 2.2,
+          isAnomaly: leakSimulated,
+        };
+
+        return [...prev.slice(1), nextPoint];
+      });
+    }, intervalMs);
+
+    return () => window.clearInterval(timer);
+  }, [activeMode, leakSimulated]);
+
+  const latestPoint = series[series.length - 1];
+  const liveMoisture = Number(
+    (preset.moisture + Math.sin(tickCount * 0.5) * 0.3).toFixed(1)
+  );
+  const livePressure = Number(
+    (
+      preset.pressure -
+      (leakSimulated ? 0.65 : 0) +
+      Math.cos(tickCount * 0.4) * 0.04
+    ).toFixed(2)
+  );
+  const anomalyPoint = useMemo(
+    () => series.find((pt) => pt.isAnomaly) || (leakSimulated ? latestPoint : undefined),
+    [series, leakSimulated, latestPoint]
+  );
+
+  const isApplied = appliedModes[activeMode];
 
   return (
-    <div
-      ref={shellRef}
-      className="glass-panel rounded-[28px] p-5 sm:p-7 border-[#22D3EE]/24 shadow-[0_36px_90px_rgba(0,0,0,0.58)]"
-    >
+    <div className="glass-panel rounded-[28px] p-5 sm:p-7 border-cyan-700/20 dark:border-[#22D3EE]/24">
       {/* Topbar */}
-      <div className="dash-build flex flex-wrap items-center justify-between gap-4 pb-5 mb-6 border-b border-white/10">
-        <div className="flex items-center gap-2" aria-hidden="true">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#FB7185]" />
-          <span className="w-2.5 h-2.5 rounded-full bg-[#F97316]" />
-          <span className="w-2.5 h-2.5 rounded-full bg-[#A3E635]" />
-        </div>
-
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-5 mb-6 border-b border-slate-200 dark:border-white/10">
         <div
           role="tablist"
           aria-label="Choisir un environnement de démonstration"
-          className="flex flex-wrap gap-1.5 p-1.5 rounded-full bg-[#05121F]/80 border border-white/8"
+          className="flex flex-wrap gap-1.5 p-1.5 rounded-full bg-slate-100 dark:bg-[#05121F]/80 border border-slate-200 dark:border-white/10"
         >
-          {(Object.keys(DASH_MODES) as DashMode[]).map((modeKey) => {
+          {(Object.keys(MODE_PRESETS) as DashMode[]).map((modeKey) => {
             const active = activeMode === modeKey;
             return (
               <button
@@ -231,173 +211,281 @@ export function DashboardDemo({ activeMode, onModeChange }: DashboardDemoProps) 
                 onClick={() => onModeChange(modeKey)}
                 className={`px-4 py-2 rounded-full text-xs sm:text-sm font-medium whitespace-nowrap shrink-0 transition-colors duration-200 cursor-pointer ${
                   active
-                    ? 'bg-[#22D3EE]/18 text-[#22D3EE] shadow-[inset_0_0_0_1px_rgba(34,211,238,0.38)]'
-                    : 'text-slate-400 hover:text-slate-100'
+                    ? 'bg-cyan-600 dark:bg-[#22D3EE]/18 text-white dark:text-[#22D3EE] shadow-[inset_0_0_0_1px_rgba(34,211,238,0.38)]'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
                 }`}
               >
-                {DASH_MODES[modeKey].label}
+                {MODE_PRESETS[modeKey].label}
               </button>
             );
           })}
         </div>
 
-        <div className="text-xs font-medium text-[#2DD4BF] whitespace-nowrap">
-          Télémétrie continue · Flux actif
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-xs font-medium text-teal-700 dark:text-[#2DD4BF] whitespace-nowrap">
+            {t('dashboard.liveStatus')}
+          </span>
+
+          <button
+            type="button"
+            onClick={onToggleLeak}
+            className={`px-4 py-2 rounded-full text-xs sm:text-sm font-display font-semibold inline-flex items-center gap-2 transition-all duration-200 cursor-pointer whitespace-nowrap shrink-0 ${
+              leakSimulated
+                ? 'bg-orange-500 text-white shadow-[0_0_24px_rgba(249,115,22,0.45)] hover:bg-orange-600'
+                : 'bg-orange-500/12 border border-orange-500/45 text-orange-700 dark:text-[#F97316] hover:bg-orange-500 hover:text-white'
+            }`}
+          >
+            <ShieldAlert size={15} aria-hidden="true" />
+            {leakSimulated ? t('dashboard.stopLeak') : t('dashboard.simulateLeak')}
+          </button>
         </div>
       </div>
 
-      {/* Main grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1.75fr_1fr] gap-6">
-        {/* Left: Chart + KPIs */}
-        <div className="dash-build rounded-[20px] bg-[#05121F]/70 border border-white/8 p-5 sm:p-6 flex flex-col justify-between">
-          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-slate-100 mb-1">{data.title}</h3>
-              <p className="text-xs sm:text-sm text-slate-400">{data.subtitle}</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-[3px] rounded bg-[#22D3EE]" aria-hidden="true" />
-                Réel (m³/h)
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-[3px] rounded bg-[#A3E635]" aria-hidden="true" />
-                Modèle ML
-              </span>
-              <span className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#FB7185]" aria-hidden="true" />
-                Anomalie
-              </span>
-            </div>
+      {/* Live IoT Sensor Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 mb-6">
+        <div className="rounded-2xl bg-slate-50 dark:bg-[#05121F]/70 border border-slate-200 dark:border-white/8 p-4">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
+            <span>{t('dashboard.sensors.moisture')}</span>
+            <Droplets size={15} className="text-lime-600 dark:text-[#A3E635]" aria-hidden="true" />
           </div>
-
-          <div className="w-full aspect-[16/7] min-h-[210px]">
-            <svg
-              className="w-full h-full overflow-visible"
-              viewBox="0 0 640 250"
-              role="img"
-              aria-label={`Courbe de débit pour ${data.label} comparant la consommation réelle et la prédiction ML`}
-            >
-              <defs>
-                <linearGradient id="aquamindAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="rgba(34, 211, 238, 0.3)" />
-                  <stop offset="100%" stopColor="rgba(34, 211, 238, 0)" />
-                </linearGradient>
-              </defs>
-
-              <g stroke="rgba(255,255,255,0.06)" strokeWidth="1">
-                <line x1="20" y1="40" x2="620" y2="40" />
-                <line x1="20" y1="95" x2="620" y2="95" />
-                <line x1="20" y1="150" x2="620" y2="150" />
-                <line x1="20" y1="205" x2="620" y2="205" />
-              </g>
-
-              <path ref={areaPathRef} d={data.areaPath} fill="url(#aquamindAreaGrad)" />
-
-              <path
-                ref={predPathRef}
-                d={data.predPath}
-                fill="none"
-                stroke="#A3E635"
-                strokeWidth="2.5"
-                strokeDasharray="7 6"
-              />
-
-              <path
-                ref={realPathRef}
-                d={data.realPath}
-                fill="none"
-                stroke="#22D3EE"
-                strokeWidth="3.2"
-                strokeLinecap="round"
-              />
-
-              <g ref={pinRef} transform={`translate(${data.pinX}, ${data.pinY})`}>
-                <circle r="18" fill="rgba(251, 113, 133, 0.2)" />
-                <circle r="7" fill="#FB7185" stroke="#05121F" strokeWidth="2.5" />
-                <rect
-                  x="-92"
-                  y="-48"
-                  width="184"
-                  height="32"
-                  rx="8"
-                  fill="#0B1F33"
-                  stroke="rgba(251,113,133,0.62)"
-                />
-                <text
-                  x="0"
-                  y="-28"
-                  textAnchor="middle"
-                  fill="#FB7185"
-                  fontSize="11"
-                  fontFamily="Sora, sans-serif"
-                  fontWeight="600"
-                >
-                  {data.anomalyLabel}
-                </text>
-              </g>
-            </svg>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mt-4 pt-4 border-t border-white/8">
-            <div>
-              <div className="text-xs text-slate-400 mb-1">Économie ce mois</div>
-              <div className="font-mono-tabular text-xl font-bold text-[#A3E635]">
-                {isApplied ? data.savingApplied : data.saving}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-400 mb-1">{data.metricLabel}</div>
-              <div className="font-mono-tabular text-xl font-bold text-slate-100">
-                {data.metricVal}
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-slate-400 mb-1">Fiabilité modèle</div>
-              <div className="font-mono-tabular text-xl font-bold text-[#22D3EE]">
-                {data.conf}
-              </div>
-            </div>
+          <div className="font-mono-tabular text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {liveMoisture} %
           </div>
         </div>
 
-        {/* Right: Anomaly Alert & AI Recommendation */}
-        <div className="flex flex-col gap-4">
-          <div className="dash-build rounded-[20px] p-5 bg-gradient-to-br from-[#FB7185]/12 to-[#05121F]/80 border border-[#FB7185]/40">
-            <div className="inline-flex items-center gap-2 text-xs font-semibold tracking-wide text-[#FB7185] mb-2">
-              <AlertTriangle size={15} aria-hidden="true" />
-              Alerte fuite détectée
+        <div className="rounded-2xl bg-slate-50 dark:bg-[#05121F]/70 border border-slate-200 dark:border-white/8 p-4">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
+            <span>{t('dashboard.sensors.flow')}</span>
+            <Waves
+              size={15}
+              className={
+                leakSimulated
+                  ? 'text-orange-600 dark:text-[#F97316]'
+                  : 'text-cyan-600 dark:text-[#22D3EE]'
+              }
+              aria-hidden="true"
+            />
+          </div>
+          <div
+            className={`font-mono-tabular text-2xl font-bold ${
+              leakSimulated
+                ? 'text-orange-600 dark:text-[#F97316]'
+                : 'text-cyan-700 dark:text-[#22D3EE]'
+            }`}
+          >
+            {latestPoint.actual.toFixed(1)} m³/h
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 dark:bg-[#05121F]/70 border border-slate-200 dark:border-white/8 p-4">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
+            <span>{t('dashboard.sensors.pressure')}</span>
+            <Gauge size={15} className="text-teal-600 dark:text-[#2DD4BF]" aria-hidden="true" />
+          </div>
+          <div className="font-mono-tabular text-2xl font-bold text-slate-900 dark:text-slate-100">
+            {livePressure} bar
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-slate-50 dark:bg-[#05121F]/70 border border-slate-200 dark:border-white/8 p-4">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-1.5">
+            <span>{t('dashboard.sensors.weather')}</span>
+            <CloudRain size={15} className="text-cyan-600 dark:text-[#22D3EE]" aria-hidden="true" />
+          </div>
+          <div className="font-mono-tabular text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">
+            {preset.weather}
+          </div>
+        </div>
+      </div>
+
+      {/* Chart + Alerts/Recommendations */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1.7fr_1fr] gap-6">
+        <div className="rounded-[20px] bg-slate-50 dark:bg-[#05121F]/70 border border-slate-200 dark:border-white/8 p-5 sm:p-6 flex flex-col justify-between">
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-base sm:text-lg font-semibold text-slate-900 dark:text-slate-100">
+                {preset.siteTitle}
+              </h3>
+              {leakSimulated && (
+                <p className="text-xs font-semibold text-orange-600 dark:text-[#F97316] mt-1">
+                  {t('dashboard.leakActiveBadge')}
+                </p>
+              )}
             </div>
-            <h4 className="text-base font-semibold text-slate-100 mb-2">{data.alertTitle}</h4>
-            <p className="text-sm text-slate-300 leading-relaxed">{data.alertDesc}</p>
+
+            <div className="flex flex-wrap items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className={`w-3 h-[3px] rounded ${
+                    leakSimulated ? 'bg-[#F97316]' : 'bg-[#22D3EE]'
+                  }`}
+                  aria-hidden="true"
+                />
+                {t('dashboard.legendReal')}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-[3px] rounded bg-[#A3E635]" aria-hidden="true" />
+                {t('dashboard.legendPred')}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-2.5 rounded-sm bg-[#22D3EE]/25" aria-hidden="true" />
+                {t('dashboard.legendBand')}
+              </span>
+            </div>
           </div>
 
-          <div className="dash-build rounded-[20px] p-5 bg-gradient-to-br from-[#A3E635]/10 to-[#05121F]/80 border border-[#A3E635]/35 flex-1 flex flex-col justify-between">
+          <div className="w-full h-[260px] sm:h-[290px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={series} margin={{ top: 10, right: 12, left: -16, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.14)" />
+                <XAxis
+                  dataKey="time"
+                  tick={{ fill: '#94A3B8', fontSize: 11 }}
+                  axisLine={{ stroke: 'rgba(148, 163, 184, 0.2)' }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: '#94A3B8', fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  domain={['auto', 'auto']}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#071728',
+                    borderColor: 'rgba(34, 211, 238, 0.35)',
+                    borderRadius: '12px',
+                    color: '#F1F5F9',
+                    fontSize: '12px',
+                  }}
+                />
+                {/* Confidence band */}
+                <Area
+                  type="monotone"
+                  dataKey="bandBase"
+                  stackId="conf"
+                  stroke="none"
+                  fill="transparent"
+                  isAnimationActive={false}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="bandSpan"
+                  stackId="conf"
+                  stroke="none"
+                  fill="rgba(34, 211, 238, 0.16)"
+                  isAnimationActive={false}
+                />
+
+                {/* Predicted ML curve */}
+                <Line
+                  type="monotone"
+                  dataKey="predicted"
+                  name={t('dashboard.legendPred')}
+                  stroke="#A3E635"
+                  strokeWidth={2.2}
+                  strokeDasharray="6 4"
+                  dot={false}
+                  isAnimationActive={false}
+                />
+
+                {/* Actual IoT flow curve */}
+                <Line
+                  type="monotone"
+                  dataKey="actual"
+                  name={t('dashboard.legendReal')}
+                  stroke={leakSimulated ? '#F97316' : '#22D3EE'}
+                  strokeWidth={3}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+
+                {anomalyPoint && (
+                  <ReferenceDot
+                    x={anomalyPoint.time}
+                    y={anomalyPoint.actual}
+                    r={7}
+                    fill="#F97316"
+                    stroke="#05121F"
+                    strokeWidth={2}
+                  />
+                )}
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Right Side: Anomaly Alert + Irrigation Recommendation */}
+        <div className="flex flex-col gap-4">
+          <div
+            role="status"
+            aria-live="polite"
+            className={`rounded-[20px] p-5 border transition-colors duration-300 ${
+              leakSimulated
+                ? 'bg-orange-500/12 border-orange-500/55'
+                : 'bg-slate-50 dark:bg-[#05121F]/70 border-slate-200 dark:border-white/10'
+            }`}
+          >
+            <div
+              className={`inline-flex items-center gap-2 text-xs font-semibold mb-2 ${
+                leakSimulated
+                  ? 'text-orange-600 dark:text-[#F97316]'
+                  : 'text-teal-700 dark:text-[#2DD4BF]'
+              }`}
+            >
+              <AlertTriangle size={15} aria-hidden="true" />
+              {t('dashboard.alertTitle')}
+            </div>
+            <p className="text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+              {leakSimulated ? t('dashboard.alertLeak') : t('dashboard.alertNominal')}
+            </p>
+          </div>
+
+          <div className="rounded-[20px] p-5 bg-lime-500/8 dark:bg-[#A3E635]/8 border border-lime-600/30 dark:border-[#A3E635]/35 flex-1 flex flex-col justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 text-xs font-semibold tracking-wide text-[#A3E635] mb-2">
+              <div className="inline-flex items-center gap-2 text-xs font-semibold text-lime-700 dark:text-[#A3E635] mb-3">
                 <Sparkles size={15} aria-hidden="true" />
-                Recommandation IA
+                {t('dashboard.recoTitle')}
               </div>
-              <h4 className="text-base font-semibold text-slate-100 mb-2">{data.recoTitle}</h4>
-              <p className="text-sm text-slate-300 leading-relaxed">{data.recoDesc}</p>
+
+              <dl className="space-y-2.5 text-sm">
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-slate-500 dark:text-slate-400">{t('dashboard.whenLabel')}</dt>
+                  <dd className="font-mono-tabular font-semibold text-slate-900 dark:text-slate-100">
+                    {preset.when}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-slate-500 dark:text-slate-400">{t('dashboard.volumeLabel')}</dt>
+                  <dd className="font-mono-tabular font-semibold text-lime-700 dark:text-[#A3E635]">
+                    {preset.liters}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <dt className="text-slate-500 dark:text-slate-400">{t('dashboard.zoneLabel')}</dt>
+                  <dd className="font-medium text-slate-800 dark:text-slate-200 text-right">
+                    {preset.zone}
+                  </dd>
+                </div>
+              </dl>
             </div>
 
             <button
               type="button"
-              onClick={handleApplyPlan}
+              onClick={() => setAppliedModes((prev) => ({ ...prev, [activeMode]: true }))}
               className={`mt-5 w-full py-3 px-4 rounded-xl font-display text-sm font-semibold transition-all duration-200 inline-flex items-center justify-center gap-2 cursor-pointer whitespace-nowrap ${
                 isApplied
-                  ? 'bg-[#2DD4BF]/18 border border-[#2DD4BF]/60 text-[#2DD4BF]'
-                  : 'bg-[#A3E635]/18 border border-[#A3E635]/45 text-[#A3E635] hover:bg-[#A3E635] hover:text-[#05121F]'
+                  ? 'bg-teal-500/18 border border-teal-600/50 dark:border-[#2DD4BF]/60 text-teal-800 dark:text-[#2DD4BF]'
+                  : 'bg-lime-500/18 border border-lime-600/45 dark:border-[#A3E635]/45 text-lime-800 dark:text-[#A3E635] hover:bg-lime-600 dark:hover:bg-[#A3E635] hover:text-white dark:hover:text-[#05121F]'
               }`}
             >
               {isApplied ? (
                 <>
                   <Check size={16} aria-hidden="true" />
-                  Plan IA activé sur les vannes
+                  {t('dashboard.recoApplied')}
                 </>
               ) : (
-                'Appliquer le plan optimisé'
+                t('dashboard.recoApply')
               )}
             </button>
           </div>
