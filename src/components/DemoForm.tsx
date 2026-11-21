@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useZodFormValidation, type FieldErrorMap } from '../hooks/useZodFormValidation';
 import { createDemoFormSchema } from '../lib/validation';
+import { apiUrl } from '../lib/apiBase';
 import { MagneticButton } from './MagneticButton';
 import type { SelectedPlan } from './PricingSection';
 
@@ -108,7 +109,7 @@ export function DemoForm({ selectedPlan, onClearPlan, onOpenPrivacy }: DemoFormP
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/demo-request', {
+      const res = await fetch(apiUrl('/api/demo-request'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validation.data),

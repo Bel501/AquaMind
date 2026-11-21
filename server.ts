@@ -233,6 +233,43 @@ async function startServer() {
   app.set('trust proxy', 1);
   app.use(express.json({ limit: '64kb' }));
 
+  const allowedOrigins = new Set<string>([
+    'capacitor://localhost',
+    'ionic://localhost',
+    'https://localhost',
+    'http://localhost',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+  ]);
+  if (process.env.APP_URL?.trim()) {
+    try {
+      allowedOrigins.add(new URL(process.env.APP_URL.trim()).origin);
+    } catch {
+      // Ignore malformed APP_URL
+    }
+  }
+  if (process.env.CORS_ALLOWED_ORIGINS?.trim()) {
+    for (const rawOrigin of process.env.CORS_ALLOWED_ORIGINS.split(',')) {
+      const cleaned = rawOrigin.trim();
+      if (cleaned) allowedOrigins.add(cleaned);
+    }
+  }
+
+  app.use('/api', (req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.has(origin)) {
+      res.setHeader('Access-Control-Allow-Origin', origin);
+      res.setHeader('Vary', 'Origin');
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    }
+    if (req.method === 'OPTIONS') {
+      res.status(204).end();
+      return;
+    }
+    next();
+  });
+
   // Healthcheck
   app.get('/api/health', (_req: Request, res: Response) => {
     res.json({ ok: true, service: 'aquamind-api' });

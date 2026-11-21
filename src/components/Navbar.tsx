@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { SupportedLocale } from '../i18n';
 import { AquaMindLogo } from './AquaMindLogo';
 import { MagneticButton } from './MagneticButton';
+import { PWAInstallButton } from './PWAInstallButton';
 
 interface NavbarProps {
   hidden: boolean;
@@ -49,7 +50,7 @@ export function Navbar({
     <header>
       <nav
         aria-label="Navigation principale"
-        className={`fixed top-3.5 left-1/2 -translate-x-1/2 z-[1100] w-[min(calc(100%-24px),1260px)] h-16 px-4 sm:px-6 flex items-center justify-between gap-4 lg:gap-8 rounded-full bg-white/92 dark:bg-[#061524]/90 border border-sky-700/18 dark:border-[#22D3EE]/18 shadow-[0_14px_38px_rgba(8,47,78,0.1)] dark:shadow-[0_16px_42px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out ${
+        className={`fixed top-[max(0.875rem,env(safe-area-inset-top))] left-1/2 -translate-x-1/2 z-[1100] w-[min(calc(100%-24px),1260px)] h-16 px-4 sm:px-6 flex items-center justify-between gap-4 lg:gap-8 rounded-full bg-white/92 dark:bg-[#061524]/90 border border-sky-700/18 dark:border-[#22D3EE]/18 shadow-[0_14px_38px_rgba(8,47,78,0.1)] dark:shadow-[0_16px_42px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out ${
           hidden ? '-translate-y-28' : 'translate-y-0'
         }`}
       >
@@ -174,7 +175,7 @@ export function Navbar({
           ))}
         </div>
 
-        <div className="pt-2">
+        <div className="pt-2 flex flex-col items-center gap-3">
           <MagneticButton
             href="#contact"
             variant="primary"
@@ -182,6 +183,7 @@ export function Navbar({
           >
             {t('nav.cta')}
           </MagneticButton>
+          <PWAInstallButton variant="drawer" onInstalledOrOpened={() => setDrawerOpen(false)} />
         </div>
       </div>
     </header>

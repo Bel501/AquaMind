@@ -1,0 +1,15 @@
+{
+  "appId": "com.aquamind.app",
+  "appName": "AquaMind",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "automatic",
+    "backgroundColor": "#05121F"
+  },
+  "android": {
+    "backgroundColor": "#05121F"
+  }
+}

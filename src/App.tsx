@@ -20,6 +20,8 @@ import { TestimonialsSlider } from './components/TestimonialsSlider';
 import { PricingSection, type SelectedPlan } from './components/PricingSection';
 import { DemoForm } from './components/DemoForm';
 import { LegalModal, type LegalTab } from './components/LegalModal';
+import { PWAInstallButton } from './components/PWAInstallButton';
+import { OfflineIndicator } from './components/OfflineIndicator';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -532,6 +534,8 @@ export default function App() {
               >
                 {t('hero.ctaSecondary')}
               </MagneticButton>
+
+              <PWAInstallButton variant="hero" />
             </div>
           </div>
 
@@ -958,6 +962,8 @@ export default function App() {
         onChangeTab={setLegalTab}
         onClose={() => setLegalTab(null)}
       />
+
+      <OfflineIndicator />
     </div>
   );
 }

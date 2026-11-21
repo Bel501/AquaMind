@@ -37,6 +37,7 @@ import {
   Waves,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { apiUrl } from '../lib/apiBase';
 import { AquaMindLogo } from './AquaMindLogo';
 
 export type DashMode = 'agri' | 'hotel' | 'industry';
@@ -176,7 +177,9 @@ export function DashboardDemo({
     const loadTelemetry = async (advance: boolean) => {
       try {
         const res = await fetch(
-          `/api/telemetry?mode=${encodeURIComponent(activeMode)}${advance ? '&advance=1' : ''}`
+          apiUrl(
+            `/api/telemetry?mode=${encodeURIComponent(activeMode)}${advance ? '&advance=1' : ''}`
+          )
         );
         if (!res.ok || cancelled) return;
         const data = (await res.json()) as {
@@ -231,7 +234,7 @@ export function DashboardDemo({
     const nextActive = !leakSimulated;
     onToggleLeak();
     try {
-      const res = await fetch('/api/telemetry/leak', {
+      const res = await fetch(apiUrl('/api/telemetry/leak'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: activeMode, active: nextActive }),
@@ -254,7 +257,7 @@ export function DashboardDemo({
   const handleApplyIrrigation = async () => {
     setSiteState((prev) => ({ ...prev, irrigationApplied: true }));
     try {
-      const res = await fetch('/api/telemetry/irrigation/apply', {
+      const res = await fetch(apiUrl('/api/telemetry/irrigation/apply'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: activeMode, applied: true }),

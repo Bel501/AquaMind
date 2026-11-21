@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AlertCircle, Bot, RotateCcw, Send, User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { SupportedLocale } from '../i18n';
+import { apiUrl } from '../lib/apiBase';
 
 interface ChatMessage {
   id: string;
@@ -51,7 +52,7 @@ export function AquaMindAssistant({ locale }: { locale: SupportedLocale }) {
     setFailedQuestion(null);
 
     try {
-      const res = await fetch('/api/chat', {
+      const res = await fetch(apiUrl('/api/chat'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

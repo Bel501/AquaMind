@@ -549,6 +549,15 @@ const resources = {
           },
         ],
       },
+      pwa: {
+        installButton: "Installer l'app mobile",
+        installIOSButton: 'Installer sur iPhone / iPad',
+        iosTitle: 'Installer AquaMind sur iOS',
+        iosStep1: 'Touchez le bouton Partager dans la barre Safari.',
+        iosStep2: "Faites défiler et touchez « Sur l'écran d'accueil ».",
+        offlineNotice: 'Mode hors-ligne — Dernières données en cache affichées.',
+        close: 'Fermer',
+      },
       footer: {
         slogan: "— L'eau, enfin sous contrôle.",
         mentions: 'Mentions légales',
@@ -1104,6 +1113,15 @@ const resources = {
           },
         ],
       },
+      pwa: {
+        installButton: 'Install mobile app',
+        installIOSButton: 'Install on iPhone / iPad',
+        iosTitle: 'Install AquaMind on iOS',
+        iosStep1: 'Tap the Share button in the Safari toolbar.',
+        iosStep2: 'Scroll down and tap "Add to Home Screen".',
+        offlineNotice: 'Offline mode — Showing cached telemetry data.',
+        close: 'Close',
+      },
       footer: {
         slogan: '— Water, finally under control.',
         mentions: 'Legal Notice',
@@ -1658,6 +1676,15 @@ const resources = {
             body: 'تُعد التوصيات والتنبيهات أدوات مساعدة لاتخاذ القرار، وتبقى المراجعة النهائية للمعدات الهيدروليكية تحت مسؤولية مشغل الموقع.',
           },
         ],
+      },
+      pwa: {
+        installButton: 'تثبيت تطبيق الهاتف',
+        installIOSButton: 'التثبيت على iPhone / iPad',
+        iosTitle: 'تثبيت AquaMind على iOS',
+        iosStep1: 'اضغط على زر المشاركة في شريط Safari.',
+        iosStep2: 'مرر للأسفل واختر "إضافة إلى الشاشة الرئيسية".',
+        offlineNotice: 'الوضع دون اتصال — يتم عرض أحدث البيانات المخزنة.',
+        close: 'إغلاق',
       },
       footer: {
         slogan: '— المياه، تحت السيطرة أخيرًا.',
