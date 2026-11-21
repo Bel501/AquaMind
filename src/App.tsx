@@ -17,7 +17,9 @@ import { DashboardDemo, type DashMode } from './components/DashboardDemo';
 import { SectorCards } from './components/SectorCards';
 import { AquaMindAssistant } from './components/AquaMindAssistant';
 import { TestimonialsSlider } from './components/TestimonialsSlider';
+import { PricingSection, type SelectedPlan } from './components/PricingSection';
 import { DemoForm } from './components/DemoForm';
+import { LegalModal, type LegalTab } from './components/LegalModal';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -32,6 +34,8 @@ export default function App() {
   const [dashMode, setDashMode] = useState<DashMode>('agri');
   const [leakSimulated, setLeakSimulated] = useState(false);
   const [howStepIndex, setHowStepIndex] = useState('01');
+  const [selectedPlan, setSelectedPlan] = useState<SelectedPlan | null>(null);
+  const [legalTab, setLegalTab] = useState<LegalTab | null>(null);
 
   const mainRef = useRef<HTMLElement>(null);
   const progressRef = useRef<HTMLDivElement>(null);
@@ -130,6 +134,14 @@ export default function App() {
     (mode: DashMode) => {
       setDashMode(mode);
       scrollToTarget('#dashboard-demo');
+    },
+    [scrollToTarget]
+  );
+
+  const handleSelectPlan = useCallback(
+    (plan: SelectedPlan) => {
+      setSelectedPlan(plan);
+      scrollToTarget('#contact');
     },
     [scrollToTarget]
   );
@@ -798,6 +810,14 @@ export default function App() {
           <TestimonialsSlider />
         </section>
 
+        {/* 9B. TARIFS */}
+        <section
+          id="pricing"
+          className="w-[min(calc(100%-36px),1240px)] mx-auto py-24 sm:py-32"
+        >
+          <PricingSection onSelectPlan={handleSelectPlan} />
+        </section>
+
         {/* 10. CONTACT / DEMANDE DE DÉMO (ZOD) */}
         <section
           id="contact"
@@ -830,7 +850,11 @@ export default function App() {
               </ul>
             </div>
 
-            <DemoForm />
+            <DemoForm
+              selectedPlan={selectedPlan}
+              onClearPlan={() => setSelectedPlan(null)}
+              onOpenPrivacy={() => setLegalTab('privacy')}
+            />
           </div>
         </section>
       </main>
@@ -883,6 +907,16 @@ export default function App() {
               {t('nav.assistant')}
             </a>
             <a
+              href="#pricing"
+              onClick={(e) => {
+                e.preventDefault();
+                scrollToTarget('#pricing');
+              }}
+              className="hover:text-cyan-700 dark:hover:text-[#22D3EE] transition-colors"
+            >
+              {t('nav.pricing')}
+            </a>
+            <a
               href="#contact"
               onClick={(e) => {
                 e.preventDefault();
@@ -892,11 +926,38 @@ export default function App() {
             >
               {t('nav.cta')}
             </a>
+            <button
+              type="button"
+              onClick={() => setLegalTab('mentions')}
+              className="hover:text-cyan-700 dark:hover:text-[#22D3EE] transition-colors cursor-pointer"
+            >
+              {t('footer.mentions')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLegalTab('privacy')}
+              className="hover:text-cyan-700 dark:hover:text-[#22D3EE] transition-colors cursor-pointer"
+            >
+              {t('footer.privacy')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setLegalTab('terms')}
+              className="hover:text-cyan-700 dark:hover:text-[#22D3EE] transition-colors cursor-pointer"
+            >
+              {t('footer.terms')}
+            </button>
           </nav>
 
           <div className="text-xs text-slate-500">{t('footer.rights')}</div>
         </div>
       </footer>
+
+      <LegalModal
+        openTab={legalTab}
+        onChangeTab={setLegalTab}
+        onClose={() => setLegalTab(null)}
+      />
     </div>
   );
 }

@@ -32,11 +32,11 @@ export function Navbar({
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const navLinks = [
-    { href: '#problem', label: t('nav.problem') },
     { href: '#architecture', label: t('nav.how') },
     { href: '#dashboard-demo', label: t('nav.dashboard') },
-    { href: '#assistant', label: t('nav.assistant') },
     { href: '#sectors', label: t('nav.sectors') },
+    { href: '#pricing', label: t('nav.pricing') },
+    { href: '#assistant', label: t('nav.assistant') },
   ];
 
   const handleLinkClick = (e: React.MouseEvent<HTMLElement>, href: string) => {

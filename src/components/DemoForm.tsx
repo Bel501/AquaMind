@@ -1,9 +1,10 @@
-import { useMemo, useRef, useState } from 'react';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useZodFormValidation, type FieldErrorMap } from '../hooks/useZodFormValidation';
 import { createDemoFormSchema } from '../lib/validation';
 import { MagneticButton } from './MagneticButton';
+import type { SelectedPlan } from './PricingSection';
 
 type FormFieldName = 'name' | 'company' | 'sector' | 'email' | 'message';
 type FormValues = Record<FormFieldName, string>;
@@ -18,7 +19,13 @@ const INITIAL_VALUES: FormValues = {
 
 const FIELD_ORDER: FormFieldName[] = ['name', 'company', 'sector', 'email', 'message'];
 
-export function DemoForm() {
+interface DemoFormProps {
+  selectedPlan?: SelectedPlan | null;
+  onClearPlan?: () => void;
+  onOpenPrivacy?: () => void;
+}
+
+export function DemoForm({ selectedPlan, onClearPlan, onOpenPrivacy }: DemoFormProps) {
   const { t } = useTranslation();
 
   const demoSchema = useMemo(
@@ -59,9 +66,26 @@ export function DemoForm() {
     company: string;
   } | null>(null);
 
+  const lastPrefilledMsgRef = useRef<string>('');
   const fieldRefs = useRef<
     Partial<Record<FormFieldName, HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null>>
   >({});
+
+  useEffect(() => {
+    if (!selectedPlan) return;
+    handleChange('sector', selectedPlan.sector);
+    const currentTrimmed = values.message.trim();
+    if (!currentTrimmed || currentTrimmed === lastPrefilledMsgRef.current) {
+      const billingSuffix =
+        selectedPlan.billing === 'annual' ? t('pricing.annual') : t('pricing.monthly');
+      const nextMsg = `${selectedPlan.prefillMessage} (${selectedPlan.name} — ${billingSuffix})`;
+      lastPrefilledMsgRef.current = nextMsg;
+      handleChange('message', nextMsg);
+    }
+    setSubmitted(null);
+    setServerError('');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlan]);
 
   const onFieldChange = (field: FormFieldName, nextValue: string) => {
     handleChange(field, nextValue);
@@ -117,6 +141,8 @@ export function DemoForm() {
         company: String(validation.data.company),
       });
       resetForm();
+      lastPrefilledMsgRef.current = '';
+      onClearPlan?.();
     } catch {
       setServerError(t('contact.form.errors.networkFallback'));
     } finally {
@@ -156,6 +182,29 @@ export function DemoForm() {
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-4" noValidate>
+      {selectedPlan && (
+        <div className="px-4 py-2.5 rounded-xl bg-sky-50/90 dark:bg-[#081C30] border border-cyan-600/35 dark:border-[#22D3EE]/35 flex items-center justify-between gap-3 text-xs sm:text-sm">
+          <span className="text-[#082F4E] dark:text-slate-100 font-medium">
+            {t('contact.form.selectedPlanLabel')} :{' '}
+            <strong className="text-cyan-700 dark:text-[#22D3EE]">{selectedPlan.name}</strong>{' '}
+            <span className="text-slate-500 dark:text-slate-400">
+              ({selectedPlan.billing === 'annual' ? t('pricing.annual') : t('pricing.monthly')})
+            </span>
+          </span>
+          {onClearPlan && (
+            <button
+              type="button"
+              onClick={onClearPlan}
+              aria-label={t('contact.form.clearPlan')}
+              className="inline-flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer shrink-0"
+            >
+              <X size={14} aria-hidden="true" />
+              <span>{t('contact.form.clearPlan')}</span>
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="flex flex-col gap-1.5">
           <label htmlFor="lead-name" className="text-xs font-medium text-slate-700 dark:text-slate-300">
@@ -291,6 +340,19 @@ export function DemoForm() {
           {submitting ? t('contact.form.submitting') : t('contact.form.submit')}
         </MagneticButton>
       </div>
+
+      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 leading-relaxed text-center">
+        {t('contact.form.rgpdNotice')}{' '}
+        {onOpenPrivacy && (
+          <button
+            type="button"
+            onClick={onOpenPrivacy}
+            className="underline underline-offset-2 text-cyan-700 dark:text-[#22D3EE] hover:opacity-80 cursor-pointer font-medium"
+          >
+            {t('contact.form.rgpdLink')}
+          </button>
+        )}
+      </p>
 
       {submitted && (
         <div

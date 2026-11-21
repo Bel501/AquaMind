@@ -15,6 +15,7 @@ const resources = {
         dashboard: 'Plateforme',
         assistant: 'Assistant IA',
         sectors: 'Secteurs',
+        pricing: 'Tarifs',
         cta: 'Demander une démo',
         themeLight: 'Passer en mode clair',
         themeDark: 'Passer en mode sombre',
@@ -384,6 +385,10 @@ const resources = {
           submitting: 'Envoi en cours…',
           successPrefix: 'Merci',
           successBody: 'Votre demande pour {{company}} est enregistrée. Un ingénieur AquaMind vous contactera sous 24h ouvrées.',
+          selectedPlanLabel: 'Offre présélectionnée',
+          clearPlan: 'Effacer',
+          rgpdNotice: 'Données traitées uniquement pour répondre à votre demande de démo (conservation sécurisée, sans revente).',
+          rgpdLink: 'Politique de confidentialité (RGPD)',
           errors: {
             nameMin: 'Nom requis (2 caractères min.).',
             nameMax: 'Nom trop long (120 caractères max.).',
@@ -398,8 +403,157 @@ const resources = {
           },
         },
       },
+      pricing: {
+        kicker: 'Tarification transparente',
+        titlePrefix: 'Un retour sur investissement',
+        titleHighlight: 'dès la première saison.',
+        subtitle:
+          "Chaque formule inclut l'hébergement cloud sécurisé, les mises à jour IA et l'accompagnement à la connexion de vos capteurs.",
+        monthly: 'Facturation mensuelle',
+        annual: 'Annuel · -20 %',
+        perMonth: '/ mois HT',
+        billedAnnually: 'Facturé annuellement',
+        billedMonthly: 'Sans engagement annuel',
+        customPrice: 'Sur devis',
+        customSub: 'À partir de 590 € / mois HT selon le nombre de sites',
+        guarantee:
+          "Pilote 30 jours disponible · Compatible LoRaWAN, Modbus & compteurs existants · Hébergement souverain en Europe (OVHcloud).",
+        benefitsLabel: 'Bénéfices inclus',
+        plans: [
+          {
+            id: 'starter',
+            index: '01',
+            badge: 'Agriculteurs & Exploitations',
+            name: 'Starter',
+            audience: 'Pour les exploitations agricoles, domaines et maraîchages',
+            description:
+              "Pilotez votre irrigation au plus juste selon l'humidité du sol et la météo locale.",
+            monthlyPrice: 89,
+            annualPrice: 71,
+            sector: 'agriculture',
+            cta: 'Choisir Starter',
+            prefillMessage:
+              "Je souhaite démarrer avec le plan Starter pour notre exploitation agricole.",
+            roiHighlight: 'Jusqu’à –32 % d’eau d’irrigation dès la première saison',
+            features: [
+              'Jusqu’à 3 parcelles ou zones agricoles supervisées',
+              'Suivi sondes IoT (humidité racinaire, débit, pression) & ET₀',
+              'Calendrier d’irrigation prédictive selon pluie et vent',
+              'Alertes fuites et surconsommation sur Web & mobile',
+              'Historique saisonnier sur 12 mois',
+            ],
+          },
+          {
+            id: 'pro',
+            index: '02',
+            badge: 'Hôtels & Tourisme · Recommandé',
+            name: 'Pro',
+            audience: 'Pour les hôtels, resorts, golfs et hébergements touristiques',
+            description:
+              'Sécurisez piscines, spas, chambres et espaces verts contre les fuites invisibles.',
+            monthlyPrice: 249,
+            annualPrice: 199,
+            sector: 'hotellerie',
+            highlighted: true,
+            cta: 'Démarrer avec Pro',
+            prefillMessage:
+              "Je souhaite une démonstration du plan Pro pour notre établissement hôtelier / touristique.",
+            roiHighlight: '–25 % sur la facture hydrique · ROI moyen en 4 mois',
+            features: [
+              'Jusqu’à 15 zones (piscines, jardins, spas, bâtiments)',
+              'Détection des fuites nocturnes et anomalies en < 4 minutes',
+              'Prévisions IA à 7 jours & bande de confiance par zone',
+              'Pilotage automatisé de l’arrosage hors heures de pointe',
+              'Assistant IA AquaMind & rapports RSE / éco-labels exportables',
+            ],
+          },
+          {
+            id: 'enterprise',
+            index: '03',
+            badge: 'Industriels & Multi-sites',
+            name: 'Enterprise',
+            audience: 'Pour les sites industriels, usines et intégrateurs SCADA',
+            description:
+              'Supervision critique des boucles de refroidissement, eaux de process et réseaux étendus.',
+            monthlyPrice: null,
+            annualPrice: null,
+            sector: 'industrie',
+            cta: 'Contacter pour Enterprise',
+            prefillMessage:
+              "Je souhaite un devis pour le plan Enterprise (site industriel / intégration API capteurs).",
+            roiHighlight: '99,4 % de disponibilité réseau sans arrêt de production imprévu',
+            features: [
+              'Sites, compteurs et capteurs industriels illimités',
+              'API d’ingestion directe (LoRaWAN, SCADA, Modbus, MQTT)',
+              'Coupure ciblée & alertes multi-canaux (Webhook, SMS, ASTREINTE)',
+              'Gestion multi-sites, rôles RBAC / SSO & SLA garanti 99,9 %',
+              'Déploiement dédié OVHcloud ou option marque blanche',
+            ],
+          },
+        ],
+      },
+      legal: {
+        close: 'Fermer',
+        title: 'Informations légales & RGPD',
+        tabs: {
+          mentions: 'Mentions légales',
+          privacy: 'Confidentialité & RGPD',
+          terms: 'CGU / CGV',
+        },
+        templateBanner:
+          'Modèle prêt à l’emploi : complétez vos coordonnées légales (raison sociale, SIRET, adresse et e-mail de contact) avant mise en ligne commerciale sur OVH.',
+        mentions: [
+          {
+            heading: '1. Éditeur de la plateforme',
+            body: 'La plateforme AquaMind est éditée par [Votre Société / Nom Commercial], [Forme juridique, ex. SAS au capital de X €], immatriculée au RCS de [Ville] sous le numéro [SIRET / RCS], dont le siège social est situé au [Adresse complète]. Responsable de la publication : [Nom du dirigeant]. Contact : [contact@votre-domaine.com].',
+          },
+          {
+            heading: '2. Hébergement (OVHcloud)',
+            body: 'Le site et les données applicatives sont hébergés sur infrastructure VPS en Europe auprès d’OVHcloud SAS — 2 rue Kellermann, 59100 Roubaix, France (RCS Lille Métropole 424 761 419).',
+          },
+          {
+            heading: '3. Propriété intellectuelle',
+            body: 'L’ensemble des interfaces, visualisations 3D, modèles de séries temporelles, textes et éléments graphiques AquaMind est protégé par le droit d’auteur. Toute reproduction ou revente non autorisée est interdite.',
+          },
+        ],
+        privacy: [
+          {
+            heading: '1. Données collectées & finalité',
+            body: 'Via le formulaire de demande de démonstration, AquaMind collecte uniquement votre nom, entreprise, secteur d’activité, adresse e-mail professionnelle et message. Ces données servent exclusivement à préparer et planifier votre démonstration commerciale.',
+          },
+          {
+            heading: '2. Base légale, conservation et stockage',
+            body: 'Le traitement repose sur l’intérêt légitime et les mesures précontractuelles (art. 6.1.b du RGPD). Les demandes sont enregistrées de manière sécurisée dans la base locale du serveur sans revente ni partage publicitaire à des tiers, pour une durée maximale de 36 mois après le dernier contact.',
+          },
+          {
+            heading: '3. Assistant IA & cookies',
+            body: 'L’assistant conversationnel transmet uniquement votre question au service d’inférence côté serveur pour générer une réponse technique. Aucun cookie publicitaire ou traceur marketing tiers n’est déposé sur votre navigateur.',
+          },
+          {
+            heading: '4. Vos droits RGPD',
+            body: 'Conformément au RGPD, vous disposez d’un droit d’accès, de rectification, d’opposition, de portabilité et d’effacement de vos données. Pour l’exercer, écrivez à : [dpo@votre-domaine.com]. Vous pouvez également saisir la CNIL en cas de réclamation.',
+          },
+        ],
+        terms: [
+          {
+            heading: '1. Objet des services SaaS',
+            body: 'AquaMind fournit une plateforme logicielle de supervision hydrique, de prévision d’irrigation et de détection d’anomalies à partir des flux de capteurs IoT et de données météorologiques.',
+          },
+          {
+            heading: '2. Abonnements, essais et résiliation',
+            body: 'Les formules mensuelles sont sans engagement de durée au-delà du mois entamé ; les formules annuelles bénéficient d’une remise de 20 %. Chaque nouveau client peut bénéficier d’un pilote de 30 jours défini par devis ou bon de commande.',
+          },
+          {
+            heading: '3. Responsabilité & disponibilité',
+            body: 'Les recommandations d’irrigation et alertes de fuite constituent un outil d’aide à la décision : la vérification finale des installations hydrauliques et électrovannes reste sous le contrôle opérationnel du site client.',
+          },
+        ],
+      },
       footer: {
         slogan: "— L'eau, enfin sous contrôle.",
+        mentions: 'Mentions légales',
+        privacy: 'Confidentialité & RGPD',
+        terms: 'CGU / CGV',
         rights: '© 2026 AquaMind. Tous droits réservés.',
       },
     },
@@ -415,6 +569,7 @@ const resources = {
         dashboard: 'Platform',
         assistant: 'AI Assistant',
         sectors: 'Sectors',
+        pricing: 'Pricing',
         cta: 'Request demo',
         themeLight: 'Switch to light mode',
         themeDark: 'Switch to dark mode',
@@ -785,6 +940,10 @@ const resources = {
           successPrefix: 'Thank you',
           successBody:
             'Your request for {{company}} is confirmed. An AquaMind engineer will reach out within 24 business hours.',
+          selectedPlanLabel: 'Selected plan',
+          clearPlan: 'Clear',
+          rgpdNotice: 'Data is processed solely to answer your demo request (secure storage, never sold).',
+          rgpdLink: 'Privacy Policy (GDPR)',
           errors: {
             nameMin: 'Full name is required (min 2 characters).',
             nameMax: 'Name is too long (max 120 characters).',
@@ -799,8 +958,157 @@ const resources = {
           },
         },
       },
+      pricing: {
+        kicker: 'Transparent pricing',
+        titlePrefix: 'Measurable ROI from',
+        titleHighlight: 'your very first season.',
+        subtitle:
+          'Every plan includes managed cloud hosting, predictive AI updates, and onboarding support for your IoT meters.',
+        monthly: 'Monthly billing',
+        annual: 'Annual · Save 20%',
+        perMonth: '/ mo excl. VAT',
+        billedAnnually: 'Billed annually',
+        billedMonthly: 'Cancel anytime',
+        customPrice: 'Custom quote',
+        customSub: 'Starting at €590 / mo excl. VAT based on site count',
+        guarantee:
+          '30-day pilot available · Compatible with LoRaWAN, Modbus & existing meters · Sovereign EU hosting (OVHcloud).',
+        benefitsLabel: 'Included benefits',
+        plans: [
+          {
+            id: 'starter',
+            index: '01',
+            badge: 'Farmers & Estates',
+            name: 'Starter',
+            audience: 'For farms, vineyards, orchards, and agricultural estates',
+            description:
+              'Schedule irrigation accurately based on root-zone moisture and hyperlocal weather.',
+            monthlyPrice: 89,
+            annualPrice: 71,
+            sector: 'agriculture',
+            cta: 'Choose Starter',
+            prefillMessage:
+              'I would like to start with the Starter plan for our agricultural estate.',
+            roiHighlight: 'Up to –32% irrigation water saved in the first season',
+            features: [
+              'Up to 3 monitored agricultural plots or zones',
+              'IoT probe tracking (soil moisture, flow, pressure) & ET₀',
+              'Predictive irrigation scheduling based on rain & wind',
+              'Instant leak and overflow alerts on Web & mobile',
+              '12-month seasonal consumption history',
+            ],
+          },
+          {
+            id: 'pro',
+            index: '02',
+            badge: 'Hotels & Tourism · Recommended',
+            name: 'Pro',
+            audience: 'For hotels, resorts, golf clubs, and hospitality sites',
+            description:
+              'Protect pools, spas, guest rooms, and landscaped gardens against silent water leaks.',
+            monthlyPrice: 249,
+            annualPrice: 199,
+            sector: 'hotellerie',
+            highlighted: true,
+            cta: 'Start with Pro',
+            prefillMessage:
+              'I would like a demo of the Pro plan for our hotel / hospitality property.',
+            roiHighlight: '–25% water bill reduction · Average 4-month ROI',
+            features: [
+              'Up to 15 zones (pools, gardens, spas, buildings)',
+              'Overnight leak and anomaly detection in < 4 minutes',
+              '7-day AI consumption forecasts & confidence intervals',
+              'Automated off-peak landscaping valve control',
+              'AquaMind AI Assistant & exportable ESG reports',
+            ],
+          },
+          {
+            id: 'enterprise',
+            index: '03',
+            badge: 'Industrial & Multi-Site',
+            name: 'Enterprise',
+            audience: 'For industrial plants, manufacturing, and SCADA networks',
+            description:
+              'Mission-critical supervision of cooling loops, process water, and distributed plants.',
+            monthlyPrice: null,
+            annualPrice: null,
+            sector: 'industrie',
+            cta: 'Request Enterprise quote',
+            prefillMessage:
+              'I would like a custom quote for the Enterprise plan (industrial site / IoT API).',
+            roiHighlight: '99.4% network uptime without unplanned production stops',
+            features: [
+              'Unlimited industrial sites, meters, and sensors',
+              'Direct ingestion API (LoRaWAN, SCADA, Modbus, MQTT)',
+              'Targeted shutoff & multi-channel alerts (Webhook, SMS)',
+              'Multi-site RBAC / SSO access control & 99.9% SLA',
+              'Dedicated OVHcloud hosting or white-label deployment',
+            ],
+          },
+        ],
+      },
+      legal: {
+        close: 'Close',
+        title: 'Legal Notice & GDPR',
+        tabs: {
+          mentions: 'Legal Notice',
+          privacy: 'Privacy & GDPR',
+          terms: 'Terms of Service',
+        },
+        templateBanner:
+          'Ready-to-publish template: fill in your company details (legal name, registration ID, address, and contact email) before commercial launch on OVH.',
+        mentions: [
+          {
+            heading: '1. Platform Publisher',
+            body: 'The AquaMind platform is published by [Your Company Name], [Legal entity & share capital], registered under [Company Registration / SIRET], headquartered at [Full Address]. Publication Director: [Director Name]. Contact: [contact@your-domain.com].',
+          },
+          {
+            heading: '2. Hosting Provider (OVHcloud)',
+            body: 'The application and its database are hosted on European VPS infrastructure provided by OVHcloud SAS — 2 rue Kellermann, 59100 Roubaix, France.',
+          },
+          {
+            heading: '3. Intellectual Property',
+            body: 'All AquaMind interfaces, 3D visuals, time-series models, copy, and graphic assets are protected by copyright law. Unauthorized reproduction or redistribution is prohibited.',
+          },
+        ],
+        privacy: [
+          {
+            heading: '1. Data Collected & Purpose',
+            body: 'Through the demo request form, AquaMind collects only your name, company, industry sector, work email, and project message. This data is used strictly to prepare and schedule your product demonstration.',
+          },
+          {
+            heading: '2. Legal Basis, Storage & Retention',
+            body: 'Processing is based on legitimate interest and pre-contractual steps (GDPR Art. 6.1.b). Requests are stored securely in the server database, never sold or shared for advertising, and retained for up to 36 months after last contact.',
+          },
+          {
+            heading: '3. AI Assistant & Cookies',
+            body: 'The conversational assistant forwards only your query to our server-side inference endpoint to provide technical guidance. No advertising cookies or third-party marketing trackers are placed in your browser.',
+          },
+          {
+            heading: '4. Your GDPR Rights',
+            body: 'Under GDPR, you have the right to access, rectify, object to, export, or erase your personal data. Contact [dpo@your-domain.com] to exercise these rights, or lodge a complaint with your local supervisory authority (e.g., CNIL).',
+          },
+        ],
+        terms: [
+          {
+            heading: '1. Scope of SaaS Services',
+            body: 'AquaMind provides a cloud software platform for water supervision, irrigation forecasting, and anomaly detection based on IoT sensor feeds and weather data.',
+          },
+          {
+            heading: '2. Subscriptions, Trials & Cancellation',
+            body: 'Monthly subscriptions carry no long-term lock-in beyond the current billing period; annual subscriptions include a 20% discount. Pilot terms (30 days) may be agreed via order form.',
+          },
+          {
+            heading: '3. Operational Responsibility',
+            body: 'Irrigation schedules and leak alerts serve as decision-support recommendations; final inspection of hydraulic equipment and valves remains under the customer site operator’s supervision.',
+          },
+        ],
+      },
       footer: {
         slogan: '— Water, finally under control.',
+        mentions: 'Legal Notice',
+        privacy: 'Privacy & GDPR',
+        terms: 'Terms',
         rights: '© 2026 AquaMind. All rights reserved.',
       },
     },
@@ -816,6 +1124,7 @@ const resources = {
         dashboard: 'المنصة',
         assistant: 'المساعد الذكي',
         sectors: 'القطاعات',
+        pricing: 'الأسعار',
         cta: 'طلب عرض',
         themeLight: 'التبديل إلى الوضع الفاتح',
         themeDark: 'التبديل إلى الوضع الداكن',
@@ -1186,6 +1495,10 @@ const resources = {
           successPrefix: 'شكرًا',
           successBody:
             'تم تسجيل طلبك لصالح {{company}}. سيتواصل معك مهندس AquaMind خلال 24 ساعة عمل.',
+          selectedPlanLabel: 'الباقة المختارة',
+          clearPlan: 'مسح',
+          rgpdNotice: 'تُعالج بياناتك فقط للرد على طلب العرض التوضيحي (تخزين آمن دون بيع).',
+          rgpdLink: 'سياسة الخصوصية (GDPR)',
           errors: {
             nameMin: 'الاسم الكامل مطلوب (حرفان على الأقل).',
             nameMax: 'الاسم طويل جدًا (120 حرفًا كحد أقصى).',
@@ -1200,8 +1513,157 @@ const resources = {
           },
         },
       },
+      pricing: {
+        kicker: 'أسعار واضحة',
+        titlePrefix: 'عائد استثمار ملموس',
+        titleHighlight: 'منذ الموسم الأول.',
+        subtitle:
+          'تشمل كل باقة الاستضافة السحابية الآمنة وتحديثات الذكاء الاصطناعي ودعم ربط المستشعرات.',
+        monthly: 'فوترة شهرية',
+        annual: 'سنوي · خصم 20%',
+        perMonth: '/ شهريًا',
+        billedAnnually: 'تُفوتر سنويًا',
+        billedMonthly: 'دون التزام سنوي',
+        customPrice: 'حسب العرض',
+        customSub: 'ابتداءً من 590 € شهريًا حسب عدد المواقع',
+        guarantee:
+          'تجربة ميدانية 30 يومًا · متوافق مع LoRaWAN وModbus · استضافة أوروبية موثوقة (OVHcloud).',
+        benefitsLabel: 'المزايا المشمولة',
+        plans: [
+          {
+            id: 'starter',
+            index: '01',
+            badge: 'المزارع والحقول',
+            name: 'Starter',
+            audience: 'للمزارع والحقول والضيعات الفلاحية',
+            description:
+              'إدارة دقيقة للري استنادًا إلى رطوبة الجذور والطقس المحلي.',
+            monthlyPrice: 89,
+            annualPrice: 71,
+            sector: 'agriculture',
+            cta: 'اختيار Starter',
+            prefillMessage:
+              'أرغب في البدء بخطة Starter لتجهيز مزرعتنا.',
+            roiHighlight: 'توفير حتى 32% من مياه الري منذ الموسم الأول',
+            features: [
+              'حتى 3 قطع أرضية أو مناطق زراعية مراقبة',
+              'متابعة مجسات IoT (الرطوبة، التدفق، الضغط) والتبخر ET₀',
+              'جدول ري تنبؤي متكيف مع الأمطار والرياح',
+              'تنبيهات فورية للتسربات عبر الويب والهاتف',
+              'سجل استهلاك موسمي لمدة 12 شهرًا',
+            ],
+          },
+          {
+            id: 'pro',
+            index: '02',
+            badge: 'الفنادق والسياحة · موصى به',
+            name: 'Pro',
+            audience: 'للفنادق والمنتجعات والمنشآت السياحية',
+            description:
+              'حماية المسابح والمنتجعات والغرف والحدائق من التسربات الليلية الخفية.',
+            monthlyPrice: 249,
+            annualPrice: 199,
+            sector: 'hotellerie',
+            highlighted: true,
+            cta: 'البدء بخطة Pro',
+            prefillMessage:
+              'أرغب في عرض توضيحي لخطة Pro لفندقنا أو منتجعنا السياحي.',
+            roiHighlight: 'توفير 25% من فاتورة المياه · عائد استثمار خلال 4 أشهر',
+            features: [
+              'حتى 15 منطقة (مسابح، حدائق، سبا، مباني)',
+              'كشف التسربات الليلية والشذوذ خلال < 4 دقائق',
+              'توقعات الذكاء الاصطناعي لـ 7 أيام ونطاق الثقة',
+              'أتمتة ري المساحات الخضراء خارج أوقات الذروة',
+              'مساعد AquaMind الذكي وتقارير الاستدامة القابلة للتصدير',
+            ],
+          },
+          {
+            id: 'enterprise',
+            index: '03',
+            badge: 'المصانع والمواقع الكبرى',
+            name: 'Enterprise',
+            audience: 'للمصانع والمنشآت الصناعية وشبكات SCADA',
+            description:
+              'إشراف مستمر على دوائر التبريد ومياه العمليات والشبكات الصناعية الحساسة.',
+            monthlyPrice: null,
+            annualPrice: null,
+            sector: 'industrie',
+            cta: 'طلب عرض Enterprise',
+            prefillMessage:
+              'أرغب في عرض سعر مخصص لخطة Enterprise (منشأة صناعية / ربط API).',
+            roiHighlight: 'جاهزية شبكة 99.4% دون توقف إنتاج مفاجئ',
+            features: [
+              'عدد غير محدود من المواقع والعدادات الصناعية',
+              'واجهة API مباشرة (LoRaWAN وSCADA وModbus وMQTT)',
+              'إغلاق مستهدف وتنبيهات متعددة القنوات (Webhook وSMS)',
+              'إدارة متعددة المواقع وصلاحيات RBAC / SSO واتفاقية 99.9%',
+              'استضافة مخصصة على OVHcloud أو خيار العلامة البيضاء',
+            ],
+          },
+        ],
+      },
+      legal: {
+        close: 'إغلاق',
+        title: 'الإشعارات القانونية والخصوصية (GDPR)',
+        tabs: {
+          mentions: 'الإشعارات القانونية',
+          privacy: 'الخصوصية وحماية البيانات',
+          terms: 'شروط الاستخدام',
+        },
+        templateBanner:
+          'نموذج جاهز للنشر: أكمل بيانات شركتك القانونية (الاسم التجاري، السجل التجاري، العنوان والبريد الإلكتروني) قبل الإطلاق الرسمي.',
+        mentions: [
+          {
+            heading: '1. ناشر المنصة',
+            body: 'يتم تشغيل منصة AquaMind من قِبل [اسم الشركة]، المسجلة تحت رقم [السجل التجاري] ومقرها [العنوان الكامل]. البريد الإلكتروني للتواصل: [contact@your-domain.com].',
+          },
+          {
+            heading: '2. الاستضافة (OVHcloud)',
+            body: 'تُستضاف المنصة وقاعدة البيانات على خوادم VPS أوروبية لدى شركة OVHcloud SAS — 2 rue Kellermann, 59100 Roubaix, France.',
+          },
+          {
+            heading: '3. الملكية الفكرية',
+            body: 'جميع واجهات AquaMind والرسوم ثلاثية الأبعاد والنماذج التنبؤية محمية بموجب حقوق الملكية الفكرية، ويُحظر نسخها أو إعادة توزيعها دون إذن مسبق.',
+          },
+        ],
+        privacy: [
+          {
+            heading: '1. البيانات المجمعة والغرض منها',
+            body: 'عبر نموذج طلب العرض التوضيحي، يجمع AquaMind فقط الاسم والشركة والقطاع والبريد المهني وتفاصيل الطلب، وذلك حصرًا لتنظيم العرض التوضيحي.',
+          },
+          {
+            heading: '2. الحفظ والأمان',
+            body: 'تُحفظ الطلبات بشكل آمن في قاعدة بيانات الخادم دون بيعها أو مشاركتها لأغراض إعلانية، وذلك لمدة أقصاها 36 شهرًا بعد آخر تواصل.',
+          },
+          {
+            heading: '3. المساعد الذكي وملفات الارتباط',
+            body: 'يرسل المساعد الذكي سؤالك فقط إلى الخادم لتوليد إجابة تقنية، ولا يتم استخدام أي ملفات تتبع إعلانية.',
+          },
+          {
+            heading: '4. حقوقك وفق GDPR',
+            body: 'يحق لك الوصول إلى بياناتك أو تصحيحها أو طلب حذفها عبر مراسلة: [dpo@your-domain.com].',
+          },
+        ],
+        terms: [
+          {
+            heading: '1. نطاق الخدمة السحابية',
+            body: 'يوفر AquaMind منصة لمراقبة استهلاك المياه والتنبؤ بالري وكشف التسربات استنادًا إلى قياسات IoT وبيانات الطقس.',
+          },
+          {
+            heading: '2. الاشتراكات والتجربة',
+            body: 'الاشتراكات الشهرية مرنة دون التزام طويل الأمد، بينما تمنح الباقات السنوية خصم 20%.',
+          },
+          {
+            heading: '3. المسؤولية التشغيلية',
+            body: 'تُعد التوصيات والتنبيهات أدوات مساعدة لاتخاذ القرار، وتبقى المراجعة النهائية للمعدات الهيدروليكية تحت مسؤولية مشغل الموقع.',
+          },
+        ],
+      },
       footer: {
         slogan: '— المياه، تحت السيطرة أخيرًا.',
+        mentions: 'إشعار قانوني',
+        privacy: 'الخصوصية وGDPR',
+        terms: 'الشروط',
         rights: '© 2026 AquaMind. جميع الحقوق محفوظة.',
       },
     },
