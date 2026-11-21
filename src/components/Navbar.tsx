@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Menu, Moon, Sun, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { SupportedLocale } from '../i18n';
+import { AquaMindLogo } from './AquaMindLogo';
 import { MagneticButton } from './MagneticButton';
 
 interface NavbarProps {
@@ -32,7 +33,7 @@ export function Navbar({
 
   const navLinks = [
     { href: '#problem', label: t('nav.problem') },
-    { href: '#how-it-works', label: t('nav.how') },
+    { href: '#architecture', label: t('nav.how') },
     { href: '#dashboard-demo', label: t('nav.dashboard') },
     { href: '#assistant', label: t('nav.assistant') },
     { href: '#sectors', label: t('nav.sectors') },
@@ -48,7 +49,7 @@ export function Navbar({
     <header>
       <nav
         aria-label="Navigation principale"
-        className={`fixed top-3.5 left-1/2 -translate-x-1/2 z-[1100] w-[min(calc(100%-24px),1260px)] h-16 px-4 sm:px-6 flex items-center justify-between gap-4 lg:gap-8 rounded-full bg-white/90 dark:bg-[#061524]/90 border border-cyan-700/15 dark:border-[#22D3EE]/18 shadow-[0_16px_42px_rgba(15,23,42,0.12)] dark:shadow-[0_16px_42px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out ${
+        className={`fixed top-3.5 left-1/2 -translate-x-1/2 z-[1100] w-[min(calc(100%-24px),1260px)] h-16 px-4 sm:px-6 flex items-center justify-between gap-4 lg:gap-8 rounded-full bg-white/92 dark:bg-[#061524]/90 border border-sky-700/18 dark:border-[#22D3EE]/18 shadow-[0_14px_38px_rgba(8,47,78,0.1)] dark:shadow-[0_16px_42px_rgba(0,0,0,0.45)] transition-transform duration-300 ease-out ${
           hidden ? '-translate-y-28' : 'translate-y-0'
         }`}
       >
@@ -56,25 +57,14 @@ export function Navbar({
         <a
           href="#hero"
           onClick={(e) => handleLinkClick(e, '#hero')}
-          className="inline-flex items-center gap-2.5 font-display font-bold text-lg tracking-tight text-slate-900 dark:text-slate-100 whitespace-nowrap shrink-0"
+          className="inline-flex items-center gap-2.5 font-display font-bold text-lg tracking-tight text-[#082F4E] dark:text-slate-100 whitespace-nowrap shrink-0"
           aria-label="AquaMind"
         >
-          <svg viewBox="0 0 32 32" width="24" height="24" aria-hidden="true">
-            <defs>
-              <linearGradient id="aquamindNavLogo" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0%" stopColor="#22D3EE" />
-                <stop offset="100%" stopColor="#A3E635" />
-              </linearGradient>
-            </defs>
-            <path
-              d="M16 3 C16 3 6 14.5 6 21 C6 26.5 10.5 30 16 30 C21.5 30 26 26.5 26 21 C26 14.5 16 3 16 3 Z"
-              fill="none"
-              stroke="url(#aquamindNavLogo)"
-              strokeWidth="2.2"
-            />
-            <circle cx="16" cy="21" r="3.4" fill="#22D3EE" />
-          </svg>
-          <span>AquaMind</span>
+          <AquaMindLogo size={26} />
+          <span>
+            <span className="text-[#082F4E] dark:text-white">Aqua</span>
+            <span className="text-[#0284C7] dark:text-[#22D3EE]">Mind</span>
+          </span>
         </a>
 
         {/* Zone 2: 5 concise single-line links */}

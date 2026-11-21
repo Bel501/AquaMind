@@ -29,6 +29,68 @@ const resources = {
         ctaPrimary: 'Demander une démo',
         ctaSecondary: 'Voir comment ça marche',
         explore: 'EXPLORER',
+        brandSub: "Gestion intelligente de l'eau",
+        pillars: [
+          { key: 'save', label: "Économiser l'eau" },
+          { key: 'optimize', label: "Optimiser l'irrigation" },
+          { key: 'detect', label: 'Détecter les fuites' },
+          { key: 'costs', label: 'Réduire les coûts' },
+        ],
+      },
+      architecture: {
+        platformTitle: 'AquaMind Platform',
+        platformSub: 'Architecture fonctionnelle du produit',
+        sources: [
+          {
+            id: 'sites',
+            title: 'Exploitation agricole / Hôtel / Industrie',
+            subtitle: 'Sites, parcelles, équipements et compteurs',
+          },
+          {
+            id: 'iot',
+            title: 'IoT Sensors',
+            subtitle: 'Humidité, débit, pression, température',
+          },
+          {
+            id: 'external',
+            title: 'External Data',
+            subtitle: 'Météo, pluie, vent, évapotranspiration ET₀',
+          },
+        ],
+        engineTitle: 'AquaMind AI Engine',
+        engineSub: 'Machine Learning · Time Series · Anomaly Detection · Optimization',
+        modules: [
+          {
+            id: 'irrigation',
+            title: 'Irrigation AI',
+            subtitle: 'Quand et combien irriguer ?',
+            detail:
+              'Modèles d’évapotranspiration et d’humidité racinaire calculant la dose optimale par parcelle avant stress hydrique.',
+          },
+          {
+            id: 'leak',
+            title: 'Leak Detection',
+            subtitle: 'Fuites et anomalies',
+            detail:
+              'Comparaison continue entre débit réel et signature temporelle attendue pour isoler toute surconsommation en < 4 minutes.',
+          },
+          {
+            id: 'forecast',
+            title: 'Consumption Forecast',
+            subtitle: 'Prévisions de consommation',
+            detail:
+              'Séries temporelles multi-horizons (24h à 7 jours) avec bande de confiance adaptative par site et saisonnalité.',
+          },
+          {
+            id: 'optimization',
+            title: 'Optimization',
+            subtitle: "Économies d'eau et coûts",
+            detail:
+              'Arbitrage automatique des plages horaires, pompage hors pointe et pilotage des vannes pour économiser 20 à 40 %.',
+          },
+        ],
+        bridgeTitle: 'Dashboard Web + Application Mobile',
+        bridgeSubtitle: 'Alertes, recommandations, rapports et pilotage',
       },
       problem: {
         kicker: 'Le constat',
@@ -133,6 +195,77 @@ const resources = {
         whenLabel: 'Quand',
         volumeLabel: 'Volume',
         zoneLabel: 'Zone ciblée',
+        bridgeTitle: 'Dashboard Web + Application Mobile',
+        bridgeSubtitle: 'Alertes, recommandations, rapports et pilotage',
+        featuresPanelTitle: 'Fonctionnalités clés',
+        featuresList: [
+          {
+            title: 'Machine Learning et séries temporelles',
+            sub: '(prévision, apprentissage, adaptation)',
+          },
+          {
+            title: 'Capteurs IoT',
+            sub: '(mesure en temps réel et supervision)',
+          },
+          {
+            title: 'Données météorologiques',
+            sub: '(prévisions, pluie, vent, évapotranspiration)',
+          },
+          {
+            title: 'Détection de fuites',
+            sub: '(anomalies et surconsommations)',
+          },
+          {
+            title: "Optimisation de l'irrigation",
+            sub: '(besoin réel, dose et planning)',
+          },
+        ],
+        targetsPanelTitle: 'Clients cibles',
+        targetsList: [
+          {
+            mode: 'agri',
+            title: 'Exploitations agricoles',
+            sub: 'Irrigation précise, rendements et gestion durable',
+          },
+          {
+            mode: 'hotel',
+            title: 'Hôtels',
+            sub: 'Maîtrise de la consommation (jardins, piscines, espaces verts)',
+          },
+          {
+            mode: 'industry',
+            title: 'Industriels',
+            sub: 'Suivi continu, détection de fuites et réduction des coûts',
+          },
+        ],
+        benefitsPanelTitle: 'Bénéfices clés',
+        benefitsList: [
+          "–20 % à –40 % de consommation d'eau",
+          'Détection rapide des fuites',
+          'Irrigation plus efficace et automatisée',
+          "Réduction des coûts d'exploitation",
+          'Gestion multi-sites et multi-utilisateurs',
+        ],
+        kpiToday: "Consommation aujourd'hui",
+        kpiSavings: "Économie d'eau",
+        kpiLeaks: 'Fuites détectées',
+        kpiReco: 'Irrigation recommandée',
+        parcelTitle: 'Cartographie réseau & capteurs',
+        chartTitle: 'Prévision de consommation (7 jours)',
+        sidebar: {
+          overview: 'Tableau de bord',
+          irrigation: 'Irrigation',
+          consumption: 'Consommation',
+          leaks: 'Fuites & alertes',
+          reports: 'Rapports',
+          settings: 'Paramètres',
+        },
+        mobileTabs: {
+          home: 'Accueil',
+          alerts: 'Alertes',
+          irrigation: 'Irrigation',
+          reports: 'Rapports',
+        },
       },
       sectors: {
         kicker: "Secteurs d'application",
@@ -251,6 +384,18 @@ const resources = {
           submitting: 'Envoi en cours…',
           successPrefix: 'Merci',
           successBody: 'Votre demande pour {{company}} est enregistrée. Un ingénieur AquaMind vous contactera sous 24h ouvrées.',
+          errors: {
+            nameMin: 'Nom requis (2 caractères min.).',
+            nameMax: 'Nom trop long (120 caractères max.).',
+            companyMin: 'Entreprise requise (2 caractères min.).',
+            companyMax: "Nom d'entreprise trop long (160 caractères max.).",
+            sectorInvalid: 'Veuillez sélectionner un secteur.',
+            emailInvalid: 'Adresse email professionnelle invalide.',
+            messageMin: 'Précisez votre besoin en quelques mots (10 caractères min.).',
+            messageMax: 'Message trop long (1500 caractères max.).',
+            serverFallback: "Une erreur est survenue lors de l'envoi.",
+            networkFallback: 'Impossible de joindre le serveur. Veuillez réessayer.',
+          },
         },
       },
       footer: {
@@ -284,6 +429,68 @@ const resources = {
         ctaPrimary: 'Request a demo',
         ctaSecondary: 'See how it works',
         explore: 'EXPLORE',
+        brandSub: 'Smart water intelligence',
+        pillars: [
+          { key: 'save', label: 'Save water' },
+          { key: 'optimize', label: 'Optimize irrigation' },
+          { key: 'detect', label: 'Detect leaks' },
+          { key: 'costs', label: 'Cut operating costs' },
+        ],
+      },
+      architecture: {
+        platformTitle: 'AquaMind Platform',
+        platformSub: 'Functional product architecture',
+        sources: [
+          {
+            id: 'sites',
+            title: 'Farm / Hotel / Industrial Site',
+            subtitle: 'Sites, plots, equipment & water meters',
+          },
+          {
+            id: 'iot',
+            title: 'IoT Sensors',
+            subtitle: 'Moisture, flow, pressure, temperature',
+          },
+          {
+            id: 'external',
+            title: 'External Data',
+            subtitle: 'Weather, rainfall, wind, evapotranspiration ET₀',
+          },
+        ],
+        engineTitle: 'AquaMind AI Engine',
+        engineSub: 'Machine Learning · Time Series · Anomaly Detection · Optimization',
+        modules: [
+          {
+            id: 'irrigation',
+            title: 'Irrigation AI',
+            subtitle: 'When & how much to irrigate?',
+            detail:
+              'Evapotranspiration and root-zone moisture models calculating the exact dose per plot before water stress occurs.',
+          },
+          {
+            id: 'leak',
+            title: 'Leak Detection',
+            subtitle: 'Leaks & anomalies',
+            detail:
+              'Continuous comparison between real flow and expected temporal signature to isolate excess consumption in < 4 min.',
+          },
+          {
+            id: 'forecast',
+            title: 'Consumption Forecast',
+            subtitle: 'Demand forecasting',
+            detail:
+              'Multi-horizon time-series predictions (24h to 7 days) with adaptive confidence bands per site.',
+          },
+          {
+            id: 'optimization',
+            title: 'Optimization',
+            subtitle: 'Water & cost savings',
+            detail:
+              'Automated scheduling around off-peak pumping windows and valve control delivering 20%–40% savings.',
+          },
+        ],
+        bridgeTitle: 'Web Dashboard + Mobile App',
+        bridgeSubtitle: 'Alerts, recommendations, reports & remote control',
       },
       problem: {
         kicker: 'The challenge',
@@ -388,6 +595,77 @@ const resources = {
         whenLabel: 'When',
         volumeLabel: 'Volume',
         zoneLabel: 'Target zone',
+        bridgeTitle: 'Web Dashboard + Mobile App',
+        bridgeSubtitle: 'Alerts, recommendations, reports & remote control',
+        featuresPanelTitle: 'Core Capabilities',
+        featuresList: [
+          {
+            title: 'Machine Learning & Time Series',
+            sub: '(forecasting, learning, adaptation)',
+          },
+          {
+            title: 'IoT Sensors',
+            sub: '(real-time metering & supervision)',
+          },
+          {
+            title: 'Weather & Climate Data',
+            sub: '(forecasts, rain, wind, ET₀)',
+          },
+          {
+            title: 'Leak Detection',
+            sub: '(anomalies & excess flow)',
+          },
+          {
+            title: 'Irrigation Optimization',
+            sub: '(actual crop need, dose & schedule)',
+          },
+        ],
+        targetsPanelTitle: 'Target Clients',
+        targetsList: [
+          {
+            mode: 'agri',
+            title: 'Farms & Estates',
+            sub: 'Precision irrigation, yields & sustainable management',
+          },
+          {
+            mode: 'hotel',
+            title: 'Hotels & Resorts',
+            sub: 'Control consumption across gardens, pools & green spaces',
+          },
+          {
+            mode: 'industry',
+            title: 'Industrial Facilities',
+            sub: 'Continuous monitoring, leak detection & cost reduction',
+          },
+        ],
+        benefitsPanelTitle: 'Key Benefits',
+        benefitsList: [
+          '–20% to –40% water consumption',
+          'Rapid leak detection',
+          'Smarter automated irrigation',
+          'Lower operating expenses',
+          'Multi-site & multi-user management',
+        ],
+        kpiToday: "Today's consumption",
+        kpiSavings: 'Water saved',
+        kpiLeaks: 'Leaks detected',
+        kpiReco: 'Recommended irrigation',
+        parcelTitle: 'Site & sensor telemetry map',
+        chartTitle: 'Consumption forecast (7 days)',
+        sidebar: {
+          overview: 'Dashboard',
+          irrigation: 'Irrigation',
+          consumption: 'Consumption',
+          leaks: 'Leaks & alerts',
+          reports: 'Reports',
+          settings: 'Settings',
+        },
+        mobileTabs: {
+          home: 'Home',
+          alerts: 'Alerts',
+          irrigation: 'Irrigation',
+          reports: 'Reports',
+        },
       },
       sectors: {
         kicker: 'Target industries',
@@ -507,6 +785,18 @@ const resources = {
           successPrefix: 'Thank you',
           successBody:
             'Your request for {{company}} is confirmed. An AquaMind engineer will reach out within 24 business hours.',
+          errors: {
+            nameMin: 'Full name is required (min 2 characters).',
+            nameMax: 'Name is too long (max 120 characters).',
+            companyMin: 'Company or farm name is required (min 2 characters).',
+            companyMax: 'Company name is too long (max 160 characters).',
+            sectorInvalid: 'Please select a sector.',
+            emailInvalid: 'Please enter a valid work email address.',
+            messageMin: 'Please describe your needs briefly (min 10 characters).',
+            messageMax: 'Message is too long (max 1500 characters).',
+            serverFallback: 'An error occurred while submitting your request.',
+            networkFallback: 'Unable to reach the server. Please try again.',
+          },
         },
       },
       footer: {
@@ -540,6 +830,68 @@ const resources = {
         ctaPrimary: 'طلب عرض توضيحي',
         ctaSecondary: 'كيف تعمل المنصة',
         explore: 'استكشف',
+        brandSub: 'إدارة ذكية للمياه',
+        pillars: [
+          { key: 'save', label: 'توفير المياه' },
+          { key: 'optimize', label: 'تحسين الري' },
+          { key: 'detect', label: 'كشف التسربات' },
+          { key: 'costs', label: 'خفض التكاليف' },
+        ],
+      },
+      architecture: {
+        platformTitle: 'منصة AquaMind',
+        platformSub: 'البنية الوظيفية للمنتج',
+        sources: [
+          {
+            id: 'sites',
+            title: 'مزارع / فنادق / صناعة',
+            subtitle: 'المواقع والقطع والمعدات والعدادات',
+          },
+          {
+            id: 'iot',
+            title: 'مستشعرات IoT',
+            subtitle: 'الرطوبة، التدفق، الضغط، الحرارة',
+          },
+          {
+            id: 'external',
+            title: 'بيانات خارجية',
+            subtitle: 'الطقس، الأمطار، الرياح، التبخر ET₀',
+          },
+        ],
+        engineTitle: 'محرك الذكاء الاصطناعي AquaMind',
+        engineSub: 'التعلم الآلي · السلاسل الزمنية · كشف الشذوذ · التحسين',
+        modules: [
+          {
+            id: 'irrigation',
+            title: 'Irrigation AI',
+            subtitle: 'متى وكم نروي؟',
+            detail:
+              'نماذج التبخر ورطوبة الجذور لحساب الجرعة المثلى لكل قطعة أرض قبل حدوث الإجهاد المائي.',
+          },
+          {
+            id: 'leak',
+            title: 'Leak Detection',
+            subtitle: 'التسربات والشذوذ',
+            detail:
+              'مقارنة مستمرة بين التدفق الفعلي والبصمة الزمنية المتوقعة لعزل أي تسرب خلال أقل من 4 دقائق.',
+          },
+          {
+            id: 'forecast',
+            title: 'Consumption Forecast',
+            subtitle: 'توقعات الاستهلاك',
+            detail:
+              'توقعات متعددة الأفق (24 ساعة إلى 7 أيام) مع نطاق ثقة متكيف حسب الموقع والموسم.',
+          },
+          {
+            id: 'optimization',
+            title: 'Optimization',
+            subtitle: 'توفير المياه والتكاليف',
+            detail:
+              'جدولة ذكية خارج أوقات الذروة والتحكم بالصمامات لتحقيق وفر من 20 إلى 40%.',
+          },
+        ],
+        bridgeTitle: 'لوحة الويب + تطبيق الهاتف',
+        bridgeSubtitle: 'التنبيهات والتوصيات والتقارير والتحكم',
       },
       problem: {
         kicker: 'الواقع الحالي',
@@ -644,6 +996,77 @@ const resources = {
         whenLabel: 'التوقيت',
         volumeLabel: 'الكمية',
         zoneLabel: 'المنطقة المستهدفة',
+        bridgeTitle: 'لوحة الويب + تطبيق الهاتف',
+        bridgeSubtitle: 'التنبيهات والتوصيات والتقارير والتحكم',
+        featuresPanelTitle: 'المزايا الرئيسية',
+        featuresList: [
+          {
+            title: 'التعلم الآلي والسلاسل الزمنية',
+            sub: '(تنبؤ وتعلم وتكيف مستمر)',
+          },
+          {
+            title: 'مستشعرات IoT',
+            sub: '(قياس وإشراف في الوقت الفعلي)',
+          },
+          {
+            title: 'بيانات الطقس والمناخ',
+            sub: '(التوقعات والأمطار والرياح والتبخر)',
+          },
+          {
+            title: 'كشف التسربات',
+            sub: '(رصد الشذوذ والاستهلاك الزائد)',
+          },
+          {
+            title: 'تحسين الري',
+            sub: '(الاحتياج الفعلي والجرعة والجدولة)',
+          },
+        ],
+        targetsPanelTitle: 'العملاء المستهدفون',
+        targetsList: [
+          {
+            mode: 'agri',
+            title: 'المزارع والحقول',
+            sub: 'ري دقيق وزيادة الإنتاج وإدارة مستدامة',
+          },
+          {
+            mode: 'hotel',
+            title: 'الفنادق والمنتجعات',
+            sub: 'التحكم في استهلاك الحدائق والمسابح والمساحات الخضراء',
+          },
+          {
+            mode: 'industry',
+            title: 'المنشآت الصناعية',
+            sub: 'متابعة مستمرة وكشف التسربات وخفض التكاليف',
+          },
+        ],
+        benefitsPanelTitle: 'الفوائد الأساسية',
+        benefitsList: [
+          'توفير من 20% إلى 40% من استهلاك المياه',
+          'اكتشاف سريع للتسربات',
+          'ري أكثر كفاءة وأتمتة',
+          'خفض تكاليف التشغيل',
+          'إدارة متعددة المواقع والمستخدمين',
+        ],
+        kpiToday: 'استهلاك اليوم',
+        kpiSavings: 'المياه الموفرة',
+        kpiLeaks: 'التسربات المكتشفة',
+        kpiReco: 'الري الموصى به',
+        parcelTitle: 'خريطة الشبكة والمستشعرات',
+        chartTitle: 'توقعات الاستهلاك (7 أيام)',
+        sidebar: {
+          overview: 'لوحة التحكم',
+          irrigation: 'الري',
+          consumption: 'الاستهلاك',
+          leaks: 'التسربات والتنبيهات',
+          reports: 'التقارير',
+          settings: 'الإعدادات',
+        },
+        mobileTabs: {
+          home: 'الرئيسية',
+          alerts: 'التنبيهات',
+          irrigation: 'الري',
+          reports: 'التقارير',
+        },
       },
       sectors: {
         kicker: 'القطاعات المستهدفة',
@@ -763,6 +1186,18 @@ const resources = {
           successPrefix: 'شكرًا',
           successBody:
             'تم تسجيل طلبك لصالح {{company}}. سيتواصل معك مهندس AquaMind خلال 24 ساعة عمل.',
+          errors: {
+            nameMin: 'الاسم الكامل مطلوب (حرفان على الأقل).',
+            nameMax: 'الاسم طويل جدًا (120 حرفًا كحد أقصى).',
+            companyMin: 'اسم الشركة أو المزرعة مطلوب (حرفان على الأقل).',
+            companyMax: 'اسم الشركة طويل جدًا (160 حرفًا كحد أقصى).',
+            sectorInvalid: 'يرجى اختيار القطاع.',
+            emailInvalid: 'عنوان البريد المهني غير صالح.',
+            messageMin: 'يرجى توضيح احتياجك بإيجاز (10 أحرف على الأقل).',
+            messageMax: 'الرسالة طويلة جدًا (1500 حرف كحد أقصى).',
+            serverFallback: 'حدث خطأ أثناء إرسال الطلب.',
+            networkFallback: 'تعذر الاتصال بالخادم. يرجى المحاولة مرة أخرى.',
+          },
         },
       },
       footer: {

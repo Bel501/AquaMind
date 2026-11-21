@@ -104,11 +104,11 @@ export function WaterCanvas3D({
     domEl.addEventListener('webglcontextrestored', onContextRestored);
 
     const darkBg = new THREE.Color(0x05121f);
-    const lightBg = new THREE.Color(0xe6f2fa);
+    const lightBg = new THREE.Color(0xeef6fc);
 
     const scene = new THREE.Scene();
     scene.background = (themeRef.current === 'dark' ? darkBg : lightBg).clone();
-    const fog = new THREE.FogExp2(themeRef.current === 'dark' ? 0x05121f : 0xe6f2fa, 0.042);
+    const fog = new THREE.FogExp2(themeRef.current === 'dark' ? 0x05121f : 0xeef6fc, 0.036);
     scene.fog = fog;
 
     const camera = new THREE.PerspectiveCamera(

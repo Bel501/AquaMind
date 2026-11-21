@@ -2,12 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import Lenis from 'lenis';
-import { ArrowRight, Check } from 'lucide-react';
+import { ArrowRight, AlertTriangle, Check, Droplets, Sprout, TrendingUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { SupportedLocale } from './i18n';
 import { Preloader } from './components/Preloader';
 import { WaterCursor } from './components/WaterCursor';
 import { Navbar } from './components/Navbar';
+import { AquaMindLogo } from './components/AquaMindLogo';
+import { ArchitectureFlow } from './components/ArchitectureFlow';
 import { WaterCanvas3D, type SceneTargets } from './components/WaterCanvas3D';
 import { MagneticButton } from './components/MagneticButton';
 import { TiltFeatureCards } from './components/TiltFeatureCards';
@@ -25,7 +27,7 @@ export default function App() {
   const [preloaded, setPreloaded] = useState(false);
   const [threeEnabled, setThreeEnabled] = useState(false);
   const [navHidden, setNavHidden] = useState(false);
-  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+  const [theme, setTheme] = useState<'dark' | 'light'>('light');
   const [locale, setLocale] = useState<SupportedLocale>('fr');
   const [dashMode, setDashMode] = useState<DashMode>('agri');
   const [leakSimulated, setLeakSimulated] = useState(false);
@@ -69,14 +71,22 @@ export default function App() {
   }>;
 
   const contactPerks = t('contact.perks', { returnObjects: true }) as string[];
+  const heroPillars = t('hero.pillars', { returnObjects: true }) as Array<{
+    key: 'save' | 'optimize' | 'detect' | 'costs';
+    label: string;
+  }>;
 
-  // Sync theme class on <html>
+  // Sync theme class & browser theme-color on <html>
   useEffect(() => {
     const root = document.documentElement;
     if (theme === 'dark') {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
+    }
+    const metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', theme === 'dark' ? '#05121F' : '#EEF6FC');
     }
   }, [theme]);
 
@@ -360,7 +370,7 @@ export default function App() {
   }, [locale]);
 
   return (
-    <div className="relative min-h-screen bg-[#f2f8fc] dark:bg-[#05121F] text-slate-900 dark:text-slate-100 transition-colors duration-300">
+    <div className="relative min-h-screen bg-[#EEF6FC] dark:bg-[#05121F] text-[#0B253C] dark:text-slate-100 transition-colors duration-300">
       <a
         href="#main-content"
         className="skip-link bg-[#22D3EE] text-[#05121F] font-display font-semibold px-5 py-3 rounded-full"
@@ -405,16 +415,58 @@ export default function App() {
         {/* 1. HERO */}
         <section
           id="hero"
-          className="min-h-[100svh] w-[min(calc(100%-36px),1240px)] mx-auto flex flex-col justify-center pt-28 pb-16 relative"
+          className="min-h-[100svh] w-[min(calc(100%-36px),1240px)] mx-auto flex flex-col justify-center pt-26 pb-20 relative"
         >
-          <div className="max-w-[820px]">
-            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-cyan-700 dark:text-[#22D3EE] mb-5">
+          {/* Reference Visual Brand & 4 Outcome Pillars Strip */}
+          <div className="hero-fade mb-8 glass-panel rounded-2xl px-4 py-3.5 sm:px-6 sm:py-4 flex flex-wrap items-center justify-between gap-4 border-sky-200/80 dark:border-[#22D3EE]/20">
+            <div className="flex items-center gap-3">
+              <AquaMindLogo size={38} />
+              <div>
+                <div className="font-display font-bold text-xl sm:text-2xl leading-none tracking-tight">
+                  <span className="text-[#082F4E] dark:text-white">Aqua</span>
+                  <span className="text-[#0284C7] dark:text-[#22D3EE]">Mind</span>
+                </div>
+                <div className="text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-300 mt-0.5">
+                  {t('hero.brandSub')}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-4 sm:gap-7">
+              {heroPillars.map((pillar) => (
+                <div key={pillar.key} className="flex items-center gap-2">
+                  <span
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
+                      pillar.key === 'save'
+                        ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
+                        : pillar.key === 'optimize'
+                        ? 'bg-lime-100 dark:bg-lime-950/60 text-lime-700 dark:text-[#A3E635]'
+                        : pillar.key === 'detect'
+                        ? 'bg-sky-100 dark:bg-sky-950/60 text-sky-700 dark:text-[#22D3EE]'
+                        : 'bg-indigo-100 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300'
+                    }`}
+                  >
+                    {pillar.key === 'save' && <Droplets size={16} aria-hidden="true" />}
+                    {pillar.key === 'optimize' && <Sprout size={16} aria-hidden="true" />}
+                    {pillar.key === 'detect' && <AlertTriangle size={16} aria-hidden="true" />}
+                    {pillar.key === 'costs' && <TrendingUp size={16} aria-hidden="true" />}
+                  </span>
+                  <span className="text-xs sm:text-sm font-semibold text-[#082F4E] dark:text-slate-100 leading-tight">
+                    {pillar.label}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="max-w-[840px]">
+            <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-[#0284C7] dark:text-[#22D3EE] mb-4">
               {t('hero.kicker')}
             </p>
 
             <h1
               aria-label={heroTitle}
-              className="font-display text-[clamp(2.75rem,7vw,5.8rem)] font-bold leading-[1.04] tracking-tight mb-7"
+              className="font-display text-[clamp(2.65rem,6.5vw,5.4rem)] font-bold leading-[1.04] tracking-tight mb-6 text-[#082F4E] dark:text-white"
             >
               {locale === 'ar'
                 ? heroWords.map((word, wIdx) => (
@@ -441,7 +493,7 @@ export default function App() {
                   ))}
             </h1>
 
-            <p className="hero-fade text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-[54ch] mb-10 leading-relaxed">
+            <p className="hero-fade text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-[54ch] mb-9 leading-relaxed">
               {t('hero.subtitle')}
             </p>
 
@@ -459,11 +511,11 @@ export default function App() {
               </MagneticButton>
 
               <MagneticButton
-                href="#how-it-works"
+                href="#architecture"
                 variant="glass"
                 onClick={(e) => {
                   e.preventDefault();
-                  scrollToTarget('#how-it-works');
+                  scrollToTarget('#architecture');
                 }}
               >
                 {t('hero.ctaSecondary')}
@@ -472,22 +524,30 @@ export default function App() {
           </div>
 
           <a
-            href="#problem"
+            href="#architecture"
             onClick={(e) => {
               e.preventDefault();
-              scrollToTarget('#problem');
+              scrollToTarget('#architecture');
             }}
             aria-label={t('hero.explore')}
-            className="absolute bottom-7 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2.5 text-slate-500 dark:text-slate-400 hover:text-cyan-700 dark:hover:text-[#22D3EE] transition-colors text-[0.72rem] tracking-[0.18em]"
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-cyan-700 dark:hover:text-[#22D3EE] transition-colors text-[0.72rem] tracking-[0.18em]"
           >
             <span>{t('hero.explore')}</span>
             <span
-              className="w-6 h-10 rounded-full border border-cyan-600/45 dark:border-[#22D3EE]/45 bg-white/60 dark:bg-[#05121F]/50 flex justify-center pt-1.5"
+              className="w-6 h-10 rounded-full border border-cyan-600/45 dark:border-[#22D3EE]/45 bg-white/75 dark:bg-[#05121F]/50 flex justify-center pt-1.5"
               aria-hidden="true"
             >
               <span className="scroll-drop-anim w-1.5 h-2.5 rounded-full bg-cyan-600 dark:bg-[#22D3EE]" />
             </span>
           </a>
+        </section>
+
+        {/* 1B. ARCHITECTURE FONCTIONNELLE DU PRODUIT */}
+        <section
+          id="architecture"
+          className="w-[min(calc(100%-36px),1260px)] mx-auto py-16 sm:py-24"
+        >
+          <ArchitectureFlow onJumpToDashboard={() => scrollToTarget('#dashboard-demo')} />
         </section>
 
         {/* 2. LE PROBLÈME */}
@@ -621,10 +681,10 @@ export default function App() {
           <TiltFeatureCards />
         </section>
 
-        {/* 5. DÉMO DASHBOARD INTERACTIVE (RECHARTS + SIMULATION DE FUITE) */}
+        {/* 5. DÉMO DASHBOARD INTERACTIVE (3 COLONNES + DOUBLE ÉCRAN WEB & MOBILE) */}
         <section
           id="dashboard-demo"
-          className="w-[min(calc(100%-36px),1240px)] mx-auto py-24 sm:py-32"
+          className="w-[min(calc(100%-36px),1340px)] mx-auto py-24 sm:py-32"
         >
           <div className="max-w-[740px] mb-12">
             <p className="text-xs sm:text-sm font-semibold tracking-[0.14em] text-cyan-700 dark:text-[#22D3EE] mb-4">
@@ -644,6 +704,7 @@ export default function App() {
             leakSimulated={leakSimulated}
             onModeChange={setDashMode}
             onToggleLeak={() => setLeakSimulated((prev) => !prev)}
+            onSyncLeakState={setLeakSimulated}
           />
         </section>
 
@@ -777,8 +838,9 @@ export default function App() {
       {/* 11. FOOTER MINIMAL */}
       <footer className="relative z-[2] border-t border-slate-200 dark:border-white/10 bg-white/85 dark:bg-[#05121F]/90 py-10">
         <div className="w-[min(calc(100%-36px),1240px)] mx-auto flex flex-wrap items-center justify-between gap-6">
-          <div className="flex flex-wrap items-baseline gap-2.5">
-            <span className="font-display font-bold text-lg text-slate-900 dark:text-slate-100">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <AquaMindLogo size={22} />
+            <span className="font-display font-bold text-lg text-[#082F4E] dark:text-slate-100">
               AquaMind
             </span>
             <span className="text-sm text-slate-500 dark:text-slate-400">

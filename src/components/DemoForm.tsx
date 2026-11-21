@@ -1,61 +1,84 @@
-import { useState } from 'react';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
-import { z } from 'zod';
+import { useMemo, useRef, useState } from 'react';
+import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useZodFormValidation, type FieldErrorMap } from '../hooks/useZodFormValidation';
+import { createDemoFormSchema } from '../lib/validation';
 import { MagneticButton } from './MagneticButton';
 
-const demoSchema = z.object({
-  name: z.string().trim().min(2, 'Nom requis (2 caractères min.).').max(120),
-  company: z.string().trim().min(2, 'Entreprise requise (2 caractères min.).').max(160),
-  sector: z.enum(['agriculture', 'hotellerie', 'industrie', 'autre'], {
-    error: 'Veuillez sélectionner un secteur.',
-  }),
-  email: z.string().trim().email('Adresse email professionnelle invalide.'),
-  message: z
-    .string()
-    .trim()
-    .min(5, 'Précisez votre besoin en quelques mots (5 caractères min.).')
-    .max(1500),
-});
+type FormFieldName = 'name' | 'company' | 'sector' | 'email' | 'message';
+type FormValues = Record<FormFieldName, string>;
 
-type FormErrors = Partial<Record<'name' | 'company' | 'sector' | 'email' | 'message', string>>;
+const INITIAL_VALUES: FormValues = {
+  name: '',
+  company: '',
+  sector: '',
+  email: '',
+  message: '',
+};
+
+const FIELD_ORDER: FormFieldName[] = ['name', 'company', 'sector', 'email', 'message'];
 
 export function DemoForm() {
   const { t } = useTranslation();
-  const [name, setName] = useState('');
-  const [company, setCompany] = useState('');
-  const [sector, setSector] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
 
-  const [fieldErrors, setFieldErrors] = useState<FormErrors>({});
+  const demoSchema = useMemo(
+    () =>
+      createDemoFormSchema({
+        nameMin: t('contact.form.errors.nameMin'),
+        nameMax: t('contact.form.errors.nameMax'),
+        companyMin: t('contact.form.errors.companyMin'),
+        companyMax: t('contact.form.errors.companyMax'),
+        sectorInvalid: t('contact.form.errors.sectorInvalid'),
+        emailInvalid: t('contact.form.errors.emailInvalid'),
+        messageMin: t('contact.form.errors.messageMin'),
+        messageMax: t('contact.form.errors.messageMax'),
+      }),
+    [t]
+  );
+
+  const {
+    values,
+    touched,
+    errors: fieldErrors,
+    handleChange,
+    handleBlur,
+    validateForm,
+    setExternalErrors,
+    resetForm,
+  } = useZodFormValidation({
+    schema: demoSchema,
+    initialValues: INITIAL_VALUES,
+    fieldOrder: FIELD_ORDER,
+  });
+
   const [serverError, setServerError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState<{ name: string; company: string } | null>(null);
+  const [submitted, setSubmitted] = useState<{
+    id?: number;
+    name: string;
+    company: string;
+  } | null>(null);
+
+  const fieldRefs = useRef<
+    Partial<Record<FormFieldName, HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null>>
+  >({});
+
+  const onFieldChange = (field: FormFieldName, nextValue: string) => {
+    handleChange(field, nextValue);
+    if (serverError) setServerError('');
+    if (submitted) setSubmitted(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setFieldErrors({});
     setServerError('');
     setSubmitted(null);
 
-    const parsed = demoSchema.safeParse({
-      name,
-      company,
-      sector,
-      email,
-      message,
-    });
-
-    if (!parsed.success) {
-      const nextErrors: FormErrors = {};
-      for (const issue of parsed.error.issues) {
-        const key = issue.path[0] as keyof FormErrors | undefined;
-        if (key && !nextErrors[key]) {
-          nextErrors[key] = issue.message;
-        }
+    const validation = validateForm();
+    if (!validation.success) {
+      if (validation.firstInvalidField) {
+        fieldRefs.current[validation.firstInvalidField]?.focus();
       }
-      setFieldErrors(nextErrors);
       return;
     }
 
@@ -64,30 +87,72 @@ export function DemoForm() {
       const res = await fetch('/api/demo-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(parsed.data),
+        body: JSON.stringify(validation.data),
       });
 
-      const payload = (await res.json()) as { error?: string };
+      const payload = (await res.json()) as {
+        id?: number;
+        error?: string;
+        issues?: Array<{ path?: Array<string | number>; message?: string }>;
+      };
+
       if (!res.ok) {
-        setServerError(payload.error || "Une erreur est survenue lors de l'envoi.");
+        if (Array.isArray(payload.issues) && payload.issues.length > 0) {
+          const nextServerFieldErrors: FieldErrorMap<FormValues> = {};
+          for (const issue of payload.issues) {
+            const key = issue.path?.[0] as FormFieldName | undefined;
+            if (key && issue.message && !nextServerFieldErrors[key]) {
+              nextServerFieldErrors[key] = issue.message;
+            }
+          }
+          setExternalErrors(nextServerFieldErrors);
+        }
+        setServerError(payload.error || t('contact.form.errors.serverFallback'));
         return;
       }
 
-      setSubmitted({ name: parsed.data.name, company: parsed.data.company });
-      setName('');
-      setCompany('');
-      setSector('');
-      setEmail('');
-      setMessage('');
+      setSubmitted({
+        id: payload.id,
+        name: String(validation.data.name),
+        company: String(validation.data.company),
+      });
+      resetForm();
     } catch {
-      setServerError('Impossible de joindre le serveur. Veuillez réessayer.');
+      setServerError(t('contact.form.errors.networkFallback'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  const inputClass =
-    'w-full px-4 py-3 rounded-xl bg-white/90 dark:bg-[#05121F]/85 border border-slate-300 dark:border-[#22D3EE]/24 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:border-cyan-600 dark:focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-cyan-500/20 transition-colors';
+  const getFieldClass = (field: FormFieldName) => {
+    const hasError = Boolean(fieldErrors[field]);
+    const isValid = Boolean(touched[field]) && !hasError && values[field].trim().length > 0;
+    const base =
+      'w-full px-4 py-3 rounded-xl bg-white/95 dark:bg-[#05121F]/85 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-sm focus:outline-none focus:ring-2 transition-colors border';
+
+    if (hasError) {
+      return `${base} border-rose-500 dark:border-[#FB7185] focus:border-rose-600 focus:ring-rose-500/20`;
+    }
+    if (isValid) {
+      return `${base} border-emerald-500/70 dark:border-[#2DD4BF]/55 focus:border-cyan-600 dark:focus:border-[#22D3EE] focus:ring-cyan-500/20`;
+    }
+    return `${base} border-slate-300 dark:border-[#22D3EE]/24 focus:border-cyan-600 dark:focus:border-[#22D3EE] focus:ring-cyan-500/20`;
+  };
+
+  const renderFieldError = (field: FormFieldName, errorId: string) => {
+    const msg = fieldErrors[field];
+    if (!msg) return null;
+    return (
+      <span
+        id={errorId}
+        role="alert"
+        className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-600 dark:text-[#FB7185] mt-0.5"
+      >
+        <AlertCircle size={13} className="shrink-0" aria-hidden="true" />
+        <span>{msg}</span>
+      </span>
+    );
+  };
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-4" noValidate>
@@ -97,18 +162,21 @@ export function DemoForm() {
             {t('contact.form.nameLabel')}
           </label>
           <input
+            ref={(el) => {
+              fieldRefs.current.name = el;
+            }}
             id="lead-name"
             name="name"
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={values.name}
+            onChange={(e) => onFieldChange('name', e.target.value)}
+            onBlur={() => handleBlur('name')}
             placeholder={t('contact.form.namePlaceholder')}
             aria-invalid={Boolean(fieldErrors.name)}
-            className={inputClass}
+            aria-describedby={fieldErrors.name ? 'lead-name-error' : undefined}
+            className={getFieldClass('name')}
           />
-          {fieldErrors.name && (
-            <span className="text-xs text-rose-600 dark:text-[#FB7185]">{fieldErrors.name}</span>
-          )}
+          {renderFieldError('name', 'lead-name-error')}
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -116,18 +184,21 @@ export function DemoForm() {
             {t('contact.form.companyLabel')}
           </label>
           <input
+            ref={(el) => {
+              fieldRefs.current.company = el;
+            }}
             id="lead-company"
             name="company"
             type="text"
-            value={company}
-            onChange={(e) => setCompany(e.target.value)}
+            value={values.company}
+            onChange={(e) => onFieldChange('company', e.target.value)}
+            onBlur={() => handleBlur('company')}
             placeholder={t('contact.form.companyPlaceholder')}
             aria-invalid={Boolean(fieldErrors.company)}
-            className={inputClass}
+            aria-describedby={fieldErrors.company ? 'lead-company-error' : undefined}
+            className={getFieldClass('company')}
           />
-          {fieldErrors.company && (
-            <span className="text-xs text-rose-600 dark:text-[#FB7185]">{fieldErrors.company}</span>
-          )}
+          {renderFieldError('company', 'lead-company-error')}
         </div>
       </div>
 
@@ -137,12 +208,17 @@ export function DemoForm() {
             {t('contact.form.sectorLabel')}
           </label>
           <select
+            ref={(el) => {
+              fieldRefs.current.sector = el;
+            }}
             id="lead-sector"
             name="sector"
-            value={sector}
-            onChange={(e) => setSector(e.target.value)}
+            value={values.sector}
+            onChange={(e) => onFieldChange('sector', e.target.value)}
+            onBlur={() => handleBlur('sector')}
             aria-invalid={Boolean(fieldErrors.sector)}
-            className={inputClass}
+            aria-describedby={fieldErrors.sector ? 'lead-sector-error' : undefined}
+            className={getFieldClass('sector')}
           >
             <option value="" disabled>
               {t('contact.form.sectorPlaceholder')}
@@ -152,9 +228,7 @@ export function DemoForm() {
             <option value="industrie">{t('contact.form.sectorOptions.industrie')}</option>
             <option value="autre">{t('contact.form.sectorOptions.autre')}</option>
           </select>
-          {fieldErrors.sector && (
-            <span className="text-xs text-rose-600 dark:text-[#FB7185]">{fieldErrors.sector}</span>
-          )}
+          {renderFieldError('sector', 'lead-sector-error')}
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -162,18 +236,21 @@ export function DemoForm() {
             {t('contact.form.emailLabel')}
           </label>
           <input
+            ref={(el) => {
+              fieldRefs.current.email = el;
+            }}
             id="lead-email"
             name="email"
             type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={values.email}
+            onChange={(e) => onFieldChange('email', e.target.value)}
+            onBlur={() => handleBlur('email')}
             placeholder={t('contact.form.emailPlaceholder')}
             aria-invalid={Boolean(fieldErrors.email)}
-            className={inputClass}
+            aria-describedby={fieldErrors.email ? 'lead-email-error' : undefined}
+            className={getFieldClass('email')}
           />
-          {fieldErrors.email && (
-            <span className="text-xs text-rose-600 dark:text-[#FB7185]">{fieldErrors.email}</span>
-          )}
+          {renderFieldError('email', 'lead-email-error')}
         </div>
       </div>
 
@@ -182,18 +259,21 @@ export function DemoForm() {
           {t('contact.form.messageLabel')}
         </label>
         <textarea
+          ref={(el) => {
+            fieldRefs.current.message = el;
+          }}
           id="lead-message"
           name="message"
           rows={3}
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          value={values.message}
+          onChange={(e) => onFieldChange('message', e.target.value)}
+          onBlur={() => handleBlur('message')}
           placeholder={t('contact.form.messagePlaceholder')}
           aria-invalid={Boolean(fieldErrors.message)}
-          className={inputClass}
+          aria-describedby={fieldErrors.message ? 'lead-message-error' : undefined}
+          className={getFieldClass('message')}
         />
-        {fieldErrors.message && (
-          <span className="text-xs text-rose-600 dark:text-[#FB7185]">{fieldErrors.message}</span>
-        )}
+        {renderFieldError('message', 'lead-message-error')}
       </div>
 
       {serverError && (
@@ -222,6 +302,7 @@ export function DemoForm() {
           <span>
             {t('contact.form.successPrefix')} {submitted.name} !{' '}
             {t('contact.form.successBody', { company: submitted.company })}
+            {submitted.id ? ` (#${submitted.id})` : ''}
           </span>
         </div>
       )}

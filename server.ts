@@ -1,9 +1,20 @@
 import 'dotenv/config';
+import crypto from 'node:crypto';
 import express, { type Request, type Response } from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
 import { z } from 'zod';
+import {
+  applySiteIrrigation,
+  getTelemetrySnapshot,
+  ingestSensorReading,
+  insertDemoRequest,
+  listDemoRequests,
+  setSiteLeakState,
+  updateDemoDeliveryStatus,
+  type SiteMode,
+} from './server/storage.ts';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT) || 3000;
@@ -74,8 +85,113 @@ const demoRequestSchema = z.object({
   company: z.string().trim().min(2).max(160),
   sector: z.enum(['agriculture', 'hotellerie', 'industrie', 'autre']),
   email: z.string().trim().email(),
-  message: z.string().trim().min(5).max(1500),
+  message: z.string().trim().min(10).max(1500),
 });
+
+const siteModeSchema = z.enum(['agri', 'hotel', 'industry']);
+
+const leakToggleSchema = z.object({
+  mode: siteModeSchema,
+  active: z.boolean().optional(),
+});
+
+const irrigationApplySchema = z.object({
+  mode: siteModeSchema,
+  applied: z.boolean().optional(),
+});
+
+const sensorIngestSchema = z.object({
+  mode: siteModeSchema,
+  flow: z.number().finite().min(0).max(5000),
+  moisture: z.number().finite().min(0).max(100).optional(),
+  pressure: z.number().finite().min(0).max(30).optional(),
+  sensorId: z.string().trim().max(80).optional(),
+});
+
+function verifyBearerToken(req: Request, expectedSecret: string): boolean {
+  const header = req.headers.authorization;
+  if (!header || !header.startsWith('Bearer ')) return false;
+  const token = header.slice('Bearer '.length).trim();
+  const a = Buffer.from(token);
+  const b = Buffer.from(expectedSecret);
+  if (a.length !== b.length) return false;
+  return crypto.timingSafeEqual(a, b);
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+async function dispatchDemoNotifications(lead: {
+  id: number;
+  name: string;
+  company: string;
+  sector: string;
+  email: string;
+  message: string;
+  createdAt: string;
+}): Promise<string> {
+  const deliveries: string[] = [];
+
+  const webhookUrl = process.env.DEMO_WEBHOOK_URL?.trim();
+  if (webhookUrl) {
+    try {
+      const resp = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event: 'aquamind.demo_request',
+          ...lead,
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (resp.ok) deliveries.push('webhook');
+    } catch {
+      // Keep persisted status intact even if external webhook fails
+    }
+  }
+
+  const resendKey = process.env.RESEND_API_KEY?.trim();
+  const notifyEmail = process.env.DEMO_NOTIFY_EMAIL?.trim();
+  if (resendKey && notifyEmail) {
+    const fromEmail =
+      process.env.DEMO_FROM_EMAIL?.trim() || 'AquaMind <onboarding@resend.dev>';
+    try {
+      const resp = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${resendKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: fromEmail,
+          to: [notifyEmail],
+          subject: `[AquaMind] Nouvelle demande de démo — ${lead.company}`,
+          html: `
+            <h2>Nouvelle demande de démo AquaMind (#${lead.id})</h2>
+            <p><strong>Nom :</strong> ${escapeHtml(lead.name)}</p>
+            <p><strong>Entreprise :</strong> ${escapeHtml(lead.company)}</p>
+            <p><strong>Secteur :</strong> ${escapeHtml(lead.sector)}</p>
+            <p><strong>Email :</strong> ${escapeHtml(lead.email)}</p>
+            <p><strong>Message :</strong><br/>${escapeHtml(lead.message)}</p>
+            <p><small>Reçu le ${escapeHtml(lead.createdAt)}</small></p>
+          `,
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+      if (resp.ok) deliveries.push('email');
+    } catch {
+      // Keep persisted status intact even if email dispatch fails
+    }
+  }
+
+  return deliveries.length > 0 ? `persisted+${deliveries.join('+')}` : 'persisted';
+}
 
 // ============================================================================
 // Client Gemini côté serveur uniquement (clé GEMINI_API_KEY jamais exposée)
@@ -153,53 +269,110 @@ async function startServer() {
         error:
           "Le service Gemini n'est pas configuré côté serveur (GEMINI_API_KEY manquante).",
         code: 'API_UNAVAILABLE',
-        fallbackAvailable: true,
       });
       return;
     }
 
-    try {
-      const historyContext =
-        history && history.length > 0
-          ? history
-              .slice(-6)
-              .map((h) => `${h.role === 'user' ? 'User' : 'AquaMind'}: ${h.text}`)
-              .join('\n') + `\nUser: ${message}`
-          : message;
+    const contents = [
+      ...(history ?? []).slice(-6).map((h) => ({
+        role: h.role === 'assistant' ? ('model' as const) : ('user' as const),
+        parts: [{ text: h.text }],
+      })),
+      { role: 'user' as const, parts: [{ text: message }] },
+    ];
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-4-hydrogen',
-        contents: historyContext,
-        config: {
-          systemInstruction: buildSystemInstruction(locale),
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-        },
+    const attempts: Array<{ model: string; thinkingLevel?: ThinkingLevel; delayMs: number }> = [
+      { model: 'gemini-3.1-flash-lite', delayMs: 0 },
+      { model: 'gemini-4-hydrogen', thinkingLevel: ThinkingLevel.LOW, delayMs: 250 },
+      { model: 'gemini-3.1-flash-lite', delayMs: 600 },
+    ];
+
+    const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
+      new Promise<T>((resolve, reject) => {
+        const timer = setTimeout(() => {
+          reject(Object.assign(new Error('Upstream model timeout'), { status: 504 }));
+        }, ms);
+        promise.then(
+          (val) => {
+            clearTimeout(timer);
+            resolve(val);
+          },
+          (err) => {
+            clearTimeout(timer);
+            reject(err);
+          }
+        );
       });
 
-      const reply = response.text?.trim();
-      if (!reply) {
-        res.status(502).json({
-          error: "Réponse vide reçue du modèle d'IA.",
-          code: 'EMPTY_RESPONSE',
-          fallbackAvailable: true,
-        });
-        return;
+    let lastErr: unknown = null;
+
+    for (const attempt of attempts) {
+      if (attempt.delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, attempt.delayMs));
       }
 
-      res.json({ reply, model: 'gemini-4-hydrogen' });
-    } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : 'Erreur inconnue';
-      console.error('[AquaMind /api/chat] Gemini API error:', errMsg);
-      res.status(502).json({
-        error: "Impossible de joindre l'assistant Gemini pour le moment.",
-        code: 'UPSTREAM_ERROR',
-        fallbackAvailable: true,
-      });
+      try {
+        const response = await withTimeout(
+          ai.models.generateContent({
+            model: attempt.model,
+            contents,
+            config: {
+              systemInstruction: buildSystemInstruction(locale),
+              ...(attempt.thinkingLevel
+                ? { thinkingConfig: { thinkingLevel: attempt.thinkingLevel } }
+                : {}),
+            },
+          }),
+          14000
+        );
+
+        const reply = response.text?.trim();
+        if (reply) {
+          res.json({ reply, model: attempt.model });
+          return;
+        }
+      } catch (err: unknown) {
+        lastErr = err;
+        const errObj = err as { status?: number };
+        const status = typeof errObj?.status === 'number' ? errObj.status : 500;
+        // Do not retry on auth/key errors (400/401/403)
+        if (status === 400 || status === 401 || status === 403) {
+          break;
+        }
+      }
     }
+
+    const errObj = lastErr as { status?: number };
+    const errMsg = lastErr instanceof Error ? lastErr.message : String(lastErr ?? 'Erreur inconnue');
+    const status = typeof errObj?.status === 'number' ? errObj.status : 503;
+    console.error('[AquaMind /api/chat] All Gemini attempts failed:', status, errMsg);
+
+    const localizedError =
+      locale === 'en'
+        ? status === 403 || status === 400
+          ? 'Gemini API key is missing or invalid in Settings > Secrets.'
+          : 'The AI model is temporarily overloaded. Please retry in a few seconds.'
+        : locale === 'ar'
+        ? status === 403 || status === 400
+          ? 'مفتاح Gemini API مفقود أو غير صالح في الإعدادات.'
+          : 'نموذج الذكاء الاصطناعي مشغول حاليًا. يرجى المحاولة بعد ثوانٍ.'
+        : status === 403 || status === 400
+        ? 'Clé API Gemini invalide ou manquante dans Settings > Secrets.'
+        : "Le modèle IA connaît un pic de charge temporaire. Réessayez dans quelques secondes.";
+
+    res.status(status >= 400 && status < 600 ? status : 503).json({
+      error: localizedError,
+      code:
+        status === 404
+          ? 'MODEL_NOT_FOUND'
+          : status === 403 || status === 400
+          ? 'API_KEY_ERROR'
+          : 'UPSTREAM_ERROR',
+    });
   });
 
-  // Route de validation de demande de démo (/api/demo-request)
-  app.post('/api/demo-request', (req: Request, res: Response) => {
+  // Route de validation et persistance de demande de démo (/api/demo-request)
+  app.post('/api/demo-request', async (req: Request, res: Response) => {
     const parsed = demoRequestSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({
@@ -209,15 +382,116 @@ async function startServer() {
       return;
     }
 
+    const clientIp = req.ip || req.socket.remoteAddress || '';
+    const saved = insertDemoRequest({
+      ...parsed.data,
+      ip: clientIp,
+    });
+
+    const deliveryStatus = await dispatchDemoNotifications({
+      id: saved.id,
+      ...parsed.data,
+      createdAt: saved.createdAt,
+    });
+
+    if (deliveryStatus !== 'persisted') {
+      updateDemoDeliveryStatus(saved.id, deliveryStatus);
+    }
+
     res.status(201).json({
       ok: true,
-      receivedAt: new Date().toISOString(),
+      id: saved.id,
+      receivedAt: saved.createdAt,
+      deliveryStatus,
       lead: {
         name: parsed.data.name,
         company: parsed.data.company,
         sector: parsed.data.sector,
       },
     });
+  });
+
+  // Consultation protégée des leads enregistrés (ADMIN_API_KEY requis)
+  app.get('/api/demo-requests', (req: Request, res: Response) => {
+    const adminKey = process.env.ADMIN_API_KEY?.trim();
+    if (!adminKey) {
+      res.status(503).json({
+        error: 'ADMIN_API_KEY non configurée sur le serveur.',
+      });
+      return;
+    }
+
+    if (!verifyBearerToken(req, adminKey)) {
+      res.status(401).json({ error: 'Accès non autorisé.' });
+      return;
+    }
+
+    const limitParam = Number(req.query.limit ?? 50);
+    const leads = listDemoRequests(Number.isFinite(limitParam) ? limitParam : 50);
+    res.json({ ok: true, count: leads.length, leads });
+  });
+
+  // ============================================================================
+  // Routes Télémétrie IoT persistées côté serveur (/api/telemetry/*)
+  // ============================================================================
+  app.get('/api/telemetry', (req: Request, res: Response) => {
+    const modeParsed = siteModeSchema.safeParse(req.query.mode ?? 'agri');
+    if (!modeParsed.success) {
+      res.status(400).json({ error: 'Mode de site invalide.' });
+      return;
+    }
+    const advance = req.query.advance === '1';
+    const snapshot = getTelemetrySnapshot(modeParsed.data as SiteMode, advance);
+    res.json({ ok: true, ...snapshot });
+  });
+
+  app.post('/api/telemetry/leak', (req: Request, res: Response) => {
+    const parsed = leakToggleSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: 'Paramètres de simulation invalides.' });
+      return;
+    }
+    const snapshot = setSiteLeakState(parsed.data.mode as SiteMode, parsed.data.active);
+    res.json({ ok: true, ...snapshot });
+  });
+
+  app.post('/api/telemetry/irrigation/apply', (req: Request, res: Response) => {
+    const parsed = irrigationApplySchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: "Paramètres d'irrigation invalides." });
+      return;
+    }
+    const snapshot = applySiteIrrigation(
+      parsed.data.mode as SiteMode,
+      parsed.data.applied ?? true
+    );
+    res.json({ ok: true, ...snapshot });
+  });
+
+  app.post('/api/telemetry/ingest', (req: Request, res: Response) => {
+    const ingestKey = process.env.IOT_INGEST_KEY?.trim();
+    if (ingestKey && !verifyBearerToken(req, ingestKey)) {
+      res.status(401).json({ error: 'Clé passerelle IoT invalide.' });
+      return;
+    }
+
+    const parsed = sensorIngestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({
+        error: 'Mesure capteur invalide.',
+        issues: parsed.error.issues,
+      });
+      return;
+    }
+
+    const result = ingestSensorReading({
+      mode: parsed.data.mode as SiteMode,
+      flow: parsed.data.flow,
+      moisture: parsed.data.moisture,
+      pressure: parsed.data.pressure,
+      sensorId: parsed.data.sensorId,
+    });
+    res.status(201).json({ ok: true, ...result });
   });
 
   // Montage Vite en développement ou fichiers statiques en production
